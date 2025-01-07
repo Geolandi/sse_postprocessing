@@ -25,10 +25,11 @@ include("src_tremors.jl")
 
 solution_date = "2025-01-03/"
 dirs = Dict()
+dirs["dir_data"] = "/Users/ag2347/Work/Data/"
 dirs["dir_case"] = "Cascadia/"
 dirs["dir_results2load"] = "./matfiles/" * dirs["dir_case"] * solution_date
-dirs["dir_fault"]   = "./fault/"*dirs["dir_case"]
-dirs["dir_tremors"] = "./tremors/"*dirs["dir_case"]*"PNSN/"
+dirs["dir_fault"]   = dirs["dir_data"] * "Faults/" * dirs["dir_case"]
+dirs["dir_tremors"] = dirs["dir_data"] * "Tremors/" * dirs["dir_case"] * "PNSN/"
 
 # # load indices of components to invert
 # ind_comps    = matread(dirs["dir_results2load"]*"ind_comps.mat")["ind_comps"]
