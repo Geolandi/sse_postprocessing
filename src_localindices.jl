@@ -1,9 +1,9 @@
 using Distances: euclidean
-using Kalman
-using GaussianDistributions
-using GaussianDistributions: ⊕ # independent sum of Gaussian r.v.
+#using Kalman
+# using GaussianDistributions
+# using GaussianDistributions: ⊕ # independent sum of Gaussian r.v.
 import ProgressMeter
-using TensorCore
+# using TensorCore
 
 function calc_dists(X, q, w)
 

@@ -2,7 +2,7 @@ using Distances
 using LinearAlgebra
 import ProgressMeter
 using GLM
-include("coordinates.jl")
+include("src_coordinates.jl")
 
 function create_priors(n_patches, options, ind_sigma, d_patches)
     lambda_strike   = options["inversion"]["lambda_strike"];

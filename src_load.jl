@@ -3,7 +3,7 @@ using GeoGreensFunctions
 using Statistics
 using DelimitedFiles
 import ProgressMeter
-include("coordinates.jl")
+include("src_coordinates.jl")
 
 function load_fault(dirs, options)
     ind_last_sep = findlast("/", options["fault"]["fault_file"])[end]

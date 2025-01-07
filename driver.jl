@@ -1,12 +1,3 @@
-using MAT
-using DynamicalSystems
-using CairoMakie
-using GLMakie
-#using DateFormats
-using GeoMakie
-using NaturalEarth
-using JLD2
-
 include("src_load.jl")
 include("src_inversion.jl")
 include("src_rate.jl")
@@ -27,40 +18,42 @@ solution_date = "2025-01-03/"
 dirs = Dict()
 dirs["dir_data"] = "/Users/ag2347/Work/Data/"
 dirs["dir_case"] = "Cascadia/"
-dirs["dir_results2load"] = "./matfiles/" * dirs["dir_case"] * solution_date
+dirs["dir_results2load"] = dirs["dir_data"] * "Slowquakes/real-time/" *
+                           dirs["dir_case"] * solution_date
 dirs["dir_fault"]   = dirs["dir_data"] * "Faults/" * dirs["dir_case"]
 dirs["dir_tremors"] = dirs["dir_data"] * "Tremors/" * dirs["dir_case"] * "PNSN/"
+dirs["dir_coastlines"] = dirs["dir_data"] * "NaturalEarth/coastlines_jl/"
 
-# # load indices of components to invert
-# ind_comps    = matread(dirs["dir_results2load"]*"ind_comps.mat")["ind_comps"]
-# ind_comps = round.(Int, ind_comps)[:,1]
-# # load misfit of inverted components
-# misfit_comps = matread(
-#     dirs["dir_results2load"]*"misfit_comps.mat")["misfit_comps"]
-# # load options
-# options      = matread(dirs["dir_results2load"]*"options.mat")["options"]
-# # load position time series used as input for vbICA
-# X            = matread(dirs["dir_results2load"]*"X.mat")["Xd"]
-# # load vbICA results
-# ICA          = matread(dirs["dir_results2load"]*"ICA.mat")["ICA_essential"]
-# ICA["type"]     = X["type"];
-# ICA["llh"]      = X["llh"];
-# ICA["timeline"] = X["timeline"];
-# ICA["decmode"]  = X["decmode"];
+# load indices of components to invert
+ind_comps    = matread(dirs["dir_results2load"]*"ind_comps.mat")["ind_comps"]
+ind_comps = round.(Int, ind_comps)[:,1]
+# load misfit of inverted components
+misfit_comps = matread(
+    dirs["dir_results2load"]*"misfit_comps.mat")["misfit_comps"]
+# load options
+options      = matread(dirs["dir_results2load"]*"options.mat")["options"]
+# load position time series used as input for vbICA
+X            = matread(dirs["dir_results2load"]*"X.mat")["Xd"]
+# load vbICA results
+ICA          = matread(dirs["dir_results2load"]*"ICA.mat")["ICA_essential"]
+ICA["type"]     = X["type"];
+ICA["llh"]      = X["llh"];
+ICA["timeline"] = X["timeline"];
+ICA["decmode"]  = X["decmode"];
 
-# # load fault
-# fault = load_fault(dirs, options)
+# load fault
+fault = load_fault(dirs, options)
 
-# # calculate Greens' functions
-# G = create_greens_function(X, fault, options)
+# calculate Greens' functions
+G = create_greens_function(X, fault, options)
 
-# # find smoothing parameters for inversion
-# min_misfit_comps, ind_sigma0_comps_Cartesian = findmin(misfit_comps, dims=1)
-# ind_sigma0_comps = getindex.(ind_sigma0_comps_Cartesian, 1)
+# find smoothing parameters for inversion
+min_misfit_comps, ind_sigma0_comps_Cartesian = findmin(misfit_comps, dims=1)
+ind_sigma0_comps = getindex.(ind_sigma0_comps_Cartesian, 1)
 
-# # invert components
-# m, Cm = invert_comps(ICA, ind_comps, fault, G, ind_sigma0_comps, options)
-# println("Done")
+# invert components
+m, Cm = invert_comps(ICA, ind_comps, fault, G, ind_sigma0_comps, options)
+println("Done")
 
 # # calculate co-variance matrix for slip potency components
 # n_ICs2invert = length(ind_comps)
@@ -132,40 +125,40 @@ dirs["dir_tremors"] = dirs["dir_data"] * "Tremors/" * dirs["dir_case"] * "PNSN/"
 
 
 
-# First, make a surface plot
-options["plot"]["video"] = nothing
+# # First, make a surface plot
+# options["plot"]["video"] = nothing
 
-options["plot"]["video"]["map_video"]                  = Dict()
-options["plot"]["video"]["map_video"]["limits"]        = (-128.2, # lon_min
-                                                          -121.0, # lon_max
-                                                          39.0,   # lat_min
-                                                          51.0)   # lat_max
-options["plot"]["video"]["map_video"]["figsize"]       = (1000, 1000)
-options["plot"]["video"]["map_video"]["proj"]          = "+proj=merc"
-options["plot"]["video"]["map_video"]["title"]         = "Cascadia"
-options["plot"]["video"]["map_video"]["output"]        =  "./movies/" * 
-                                                        dirs["dir_case"] * 
-                                                        "slip_potency_rate_map"
-options["plot"]["video"]["map_video"]["show_progress"] = true
-options["plot"]["video"]["map_video"]["framerate"]     = 20
-options["plot"]["video"]["map_video"]["n_lats_edges"]  = 101
-options["plot"]["video"]["map_video"]["Δt"]            = 1.0
-options["plot"]["video"]["map_video"]["t0"]            = 2024.5
-options["plot"]["video"]["map_video"]["t0_time"]       = true
+# options["plot"]["video"]["map_video"]                  = Dict()
+# options["plot"]["video"]["map_video"]["limits"]        = (-128.2, # lon_min
+#                                                           -121.0, # lon_max
+#                                                           39.0,   # lat_min
+#                                                           51.0)   # lat_max
+# options["plot"]["video"]["map_video"]["figsize"]       = (1000, 1000)
+# options["plot"]["video"]["map_video"]["proj"]          = "+proj=merc"
+# options["plot"]["video"]["map_video"]["title"]         = "Cascadia"
+# options["plot"]["video"]["map_video"]["output"]        =  "./movies/" * 
+#                                                         dirs["dir_case"] * 
+#                                                         "slip_potency_rate_map"
+# options["plot"]["video"]["map_video"]["show_progress"] = true
+# options["plot"]["video"]["map_video"]["framerate"]     = 20
+# options["plot"]["video"]["map_video"]["n_lats_edges"]  = 101
+# options["plot"]["video"]["map_video"]["Δt"]            = 1.0
+# options["plot"]["video"]["map_video"]["t0"]            = 2024.5
+# options["plot"]["video"]["map_video"]["t0_time"]       = true
 
-# fig = make_figure_map_lat_time(slip_potency_rate, fault, (1510, 900), title)
+# # fig = make_figure_map_lat_time(slip_potency_rate, fault, (1510, 900), title)
 
-make_video_map(slip_potency_rate,
-               tremors,
-               fault,
-               options["plot"]["video"]["map_video"]
-               )
+# make_video_map(slip_potency_rate,
+#                tremors,
+#                fault,
+#                options["plot"]["video"]["map_video"]
+#                )
 
-X = StateSpaceSet(slip_potency_rate["obs"]');
-p = 0.99
-est = :exp
-d, θ = extremevaltheory_dims_persistences(X, Exceedances(p, est))
-make_video_dtheta(options["plot"]["movie"])
+# X = StateSpaceSet(slip_potency_rate["obs"]');
+# p = 0.99
+# est = :exp
+# d, θ = extremevaltheory_dims_persistences(X, Exceedances(p, est))
+# make_video_dtheta(options["plot"]["movie"])
 
 # fig = Figure(size=figsize)
 #     ax = GeoAxis(
