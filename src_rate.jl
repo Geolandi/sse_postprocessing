@@ -35,7 +35,8 @@ function create_xsmooth(X, timeline, method)
         fs = method["fs"]
         Wn = method["filter_cutofffreq"]
         filter_win = method["filter_window"]
-        responsetype = Lowpass(Wn; fs)
+        #responsetype = Lowpass(Wn; fs)
+        responsetype = Lowpass(Wn)
         if method["filter_type"] == "hanning"
             designmethod = FIRWindow(hanning(filter_win; zerophase=false))
         end

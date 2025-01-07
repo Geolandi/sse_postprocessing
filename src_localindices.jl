@@ -4,6 +4,17 @@ using Distances: euclidean
 # using GaussianDistributions: ⊕ # independent sum of Gaussian r.v.
 import ProgressMeter
 # using TensorCore
+using DynamicalSystems
+
+function calc_d_θ(obs_var, options)
+    p   = options["p"]
+    est = options["est"]
+
+    obs = obs_var["obs"]
+    X = StateSpaceSet(obs');
+    d, θ = extremevaltheory_dims_persistences(X, Exceedances(p, est))
+    return d, θ
+end
 
 function calc_dists(X, q, w)
 

@@ -4,6 +4,7 @@ using GeoDataFrames
 using GeoInterface
 using DateFormats
 using PolygonOps
+using StaticArrays
 include("src_plot.jl")
 
 function update_tremors(dirs, t_end)
