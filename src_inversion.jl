@@ -106,7 +106,7 @@ function invert_comps(ICA, ind_comps, fault, G, ind_sigma0_comps, options)
 end
 
 function create_model(m, Cm, decomp, fault, options, ind_comps)
-    println("Creating slip model... ")
+    println("Creating model... ")
     result = Dict()
     result["timeline"] = decomp["timeline"]
 
@@ -395,7 +395,7 @@ function calc_slip_cov_slip_var_slip(L,cov_L,S,V,var_V,flag_compute_cov)
         elapsed_time = zeros(T);
         # # Construct a ParforProgressbar object
         # progress = ProgressMeter.Progress(
-        #     T; desc = "Calculating slip covariance", enabled = true
+        #     T; desc = "Calculating covariance", enabled = true
         #     )
         # For every epoch...
         for tt=1:T
@@ -527,7 +527,7 @@ function calc_slip_cov_slip_var_slip(L,cov_L,S,V,var_V,flag_compute_cov)
 
     # Construct a ParforProgressbar object
     progress = ProgressMeter.Progress(
-        N; desc = "Calculating slip variance", enabled = true
+        N; desc = "Calculating variance", enabled = true
         )
     # It seems to be faster if not in parallel...
     #Threads.@threads for nn=1:N

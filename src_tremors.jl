@@ -155,7 +155,7 @@ function select_tremors(tremors_input, timeline, fault)
     
     n_dates = length(dates)
     n_patches = size(fault["xE"])[1]
-    tremors_output["N"] = zeros(n_patches, n_dates)
+    tremors_output["R"] = zeros(n_patches, n_dates)
     # Construct a ParforProgressbar object
     progress = ProgressMeter.Progress(
         n_dates; desc = "Finding tremors in patches", enabled = true
@@ -168,7 +168,7 @@ function select_tremors(tremors_input, timeline, fault)
                     )
         if ~isempty(points)
             for j in 1:n_patches
-                tremors_output["N"][j,i] = sum([inpolygon(p, polygon[j,:];
+                tremors_output["R"][j,i] = sum([inpolygon(p, polygon[j,:];
                                 in=true, on=false, out=false) for p in points])
                 
             end

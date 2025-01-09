@@ -14,7 +14,8 @@ function make_video_map(obs_var, tremors, fault, options)
     n_lats_edges  = options["n_lats_edges"]
     Δt            = options["Δt"] 
     t0            = options["t0"] 
-    t0_time       = options["t0_time"] 
+    t0_time       = options["t0_time"]
+    color_thresh  = options["color_thresh_perc"]
 
     timeline = obs_var["timeline"][1,:]
     obs = obs_var["obs"]
@@ -32,8 +33,11 @@ function make_video_map(obs_var, tremors, fault, options)
     color_exp = Int(minimum([ceil(log10(abs(minimum(obs)))),
                         ceil(log10(abs(maximum(obs))))]) - 1)
     color = obs ./ 10^color_exp
+    color_max = maximum(abs.(color))
+    color_threshold = color_thresh*color_max
+    color[abs.(color) .< color_threshold] .= 0
     #color[fault["llh"][:,3] .< -50, :] .= 0
-    colorrange = (-ceil(maximum(abs.(color))), ceil(maximum(abs.(color))))
+    colorrange = (-ceil(color_max), ceil(color_max))
 
     dates = Date.(DateFormats.yeardecimal.(timeline))  
     dates_tremors = Date.(DateFormats.yeardecimal.(tremors["timeline"]))
@@ -67,11 +71,16 @@ function make_video_map(obs_var, tremors, fault, options)
     color_lats_minmax[inds] = color_lats_min[inds];
 
     fig = Figure(size=figsize)
+    gt = fig[0, 1:2] = GridLayout()
+    ga = fig[1:2, 1] = GridLayout()
+    gbc = fig[1:2, 2] = GridLayout()
+    gb = gbc[1, 1] = GridLayout()
+    gc = gbc[2, 1] = GridLayout()
 
     #############
     ### TITLE ###
     #############
-    titlelayout = GridLayout(fig[0, 1:2],
+    titlelayout = GridLayout(gt[1,1],
                              halign = :center,
                              tellwidth = false
                              )
@@ -91,8 +100,8 @@ function make_video_map(obs_var, tremors, fault, options)
     xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
     yticks = collect(lat_min-1:2:lat_max+1)
     yticks = [round(Int, ytick) for ytick in yticks] # Ensure ticks are integers
-    ax1 = GeoAxis(
-        fig[1,1],
+    axa = GeoAxis(
+        ga[1,1],
         dest=proj,
         limits=limits,
         xgridwidth=0.1,
@@ -101,15 +110,17 @@ function make_video_map(obs_var, tremors, fault, options)
         yticklabelsize=24,
         xticks=xticks,
         yticks=yticks,
+        xgridstyle=:solid,
         title=date_obs_str,
-        titlesize=24,
+        titlesize=36,
         titlefont="Times New Roman",
+        titlegap=50,
         )
     # # Date
     # Makie.text!(ax1, lon_min+0.2, lat_min+0.2; text=date_obs_str, fontsize=24)
     # Observable on fault
     trg = poly!(
-        ax1,
+        axa,
         vertices,
         color=color_obs,
         strokecolor=:black,
@@ -120,7 +131,7 @@ function make_video_map(obs_var, tremors, fault, options)
     translate!(trg, 0, 0, 100) # move above surface plot
     # Tremors
     tr = GeoMakie.scatter!(
-            ax1,
+            axa,
             points,
             color=:black,
             markersize=5,
@@ -129,28 +140,46 @@ function make_video_map(obs_var, tremors, fault, options)
     # Coastline
     # ne_10m_coastline = GeoMakie.coastlines(10)
     # save_object("ne_10m_coastline.jld2", ne_10m_coastline)
-    ne_10m_coastline = load_object("./coastlines/ne_10m_coastline.jld2")
-    cl_obj = GeoMakie.lines!(ax1, ne_10m_coastline, color=:black)
+    coastline_file = dirs["dir_coastlines"] * "ne_10m_coastline.jld2"
+    ne_10m_coastline = load_object(coastline_file)
+    cl_obj = GeoMakie.lines!(axa, ne_10m_coastline, color=:black)
     translate!(cl_obj, 0, 0, 200)
 
-    #########################
-    ### MAP LATITUDE-TIME ###
-    #########################
-    ax2 = Axis(fig[1, 2],
-               xlabel="Time (yr)",
-               ylabel="Latitude (°)",
-               xaxisposition=:top,
+    ###################
+    ### TIME SERIES ###
+    ###################
+    sum_tr = sum(tremors["N"], dims=1)[1,:]
+    axb = Axis(gb[1,1],
+               xlabel=L"Time ($yr$)",
+               ylabel="tbd",
                xlabelsize=24,
                ylabelsize=24,
                xticklabelsize=24,
                yticklabelsize=24,
+               xaxisposition=:top,
+               )
+    sum_tr_sc = Makie.scatter!(
+        axb,
+        timeline, sum_tr,
+        color=:black,
+        markersize=5,
+        alpha=1,
+        )
+    #########################
+    ### MAP LATITUDE-TIME ###
+    #########################
+    axc = Axis(gc[1, 1],
+               ylabel="Latitude (°)",
+               ylabelsize=24,
+               yticklabelsize=24,
                yticks=yticks
                )
-    
-    hm = heatmap!(ax2, timeline, lats, color_lats_minmax',
+    hidexdecorations!(axc, grid = false)
+
+    hm = heatmap!(axc, timeline, lats, color_lats_minmax',
             colormap=:bwr, colorrange=colorrange)
     tr_map = Makie.scatter!(
-        ax2,
+        axc,
         tremors["timeline"], tremors["lat"],
         color=:black,
         markersize=1,
@@ -166,7 +195,7 @@ function make_video_map(obs_var, tremors, fault, options)
     tick_step = ceil(Int, max_abs_value / 3)
     ticks = collect(-3*tick_step:tick_step:3*tick_step)
     ticks = [round(Int, tick) for tick in ticks]  # Ensure ticks are integers
-    Colorbar(fig[2, 1:2],
+    Colorbar(fig[3, 1:2],
              limits=colorrange,
              colormap=:bwr,
              flipaxis=false,
@@ -176,6 +205,13 @@ function make_video_map(obs_var, tremors, fault, options)
              ticks=ticks,
              ticklabelsize=24
              )
+    #################################
+    ### GENERAL LAYOUT ADJUSTMENT ###
+    #################################
+    rowsize!(fig.layout, 1, Auto(0.5))
+    colsize!(ga, 1, Auto(0.5))
+    rowsize!(gbc, 1, Auto(0.5))
+    rowgap!(gbc, 0)
 
     #############
     ### MOVIE ###
@@ -186,7 +222,8 @@ function make_video_map(obs_var, tremors, fault, options)
     record(fig, output*".mp4", timestamps; framerate = framerate) do time_idx
         ind_t_obs[] = time_idx
         ind_tr_obs[] = dates_tremors .== dates[time_idx]
-        xlims!(ax2, t1.val-Δt, t1.val)
+        xlims!(axb, t1.val-Δt, t1.val)
+        xlims!(axc, t1.val-Δt, t1.val)
         ProgressMeter.next!(progress)
     end
 
