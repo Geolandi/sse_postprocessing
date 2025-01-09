@@ -94,7 +94,7 @@ V_dot, timeline_dot = calc_derivative(V_smooth', timeline_smooth,
 
 
 # update and load tremors
-update_tremors(dirs, timeline_dot[end]);
+update_tremors(dirs, ICA["timeline"][end]);
 tremors = load_tremors(dirs, fault["origin"]);
 tremors = select_tremors(tremors, timeline_dot, fault)
 
@@ -121,94 +121,86 @@ slip_rate = create_model(m, Cm, ICA_dot, fault, options, ind_comps)
 slip_potency_rate = create_model(mp, Cmp, ICA_dot, fault, options, ind_comps)
 
 
+##############
+### MOVIES ###
+##############
+# First, make a surface plot
+options["plot"]["video"] = Dict()
 
-# # First, make a surface plot
-# options["plot"]["video"] = Dict()
+options["plot"]["video"]["map_video"]                  = Dict()
+options["plot"]["video"]["map_video"]["limits"]        = (-128.2, # lon_min
+                                                          -121.0, # lon_max
+                                                          39.0,   # lat_min
+                                                          51.0)   # lat_max
+options["plot"]["video"]["map_video"]["figsize"]       = (1000, 1000)
+options["plot"]["video"]["map_video"]["proj"]          = "+proj=merc"
+options["plot"]["video"]["map_video"]["title"]         = "Cascadia"
+options["plot"]["video"]["map_video"]["output"]        =  dirs["dir_results"] *
+                                                        "Slowquakes/real-time/"*
+                                                        dirs["dir_case"] * 
+                                                        "slip_potency_rate_map"
+options["plot"]["video"]["map_video"]["show_progress"] = true
+options["plot"]["video"]["map_video"]["framerate"]     = 20
+options["plot"]["video"]["map_video"]["n_lats_edges"]  = 101
+options["plot"]["video"]["map_video"]["Δt"]            = 1.0
+options["plot"]["video"]["map_video"]["t0"]            = 2019.5
+options["plot"]["video"]["map_video"]["t0_time"]       = true
+# if abs.(color) .< color_thresh_perc, set color to 0
+options["plot"]["video"]["map_video"]["color_thresh_perc"] = 0 #0.15
 
-# options["plot"]["video"]["map_video"]                  = Dict()
-# options["plot"]["video"]["map_video"]["limits"]        = (-128.2, # lon_min
-#                                                           -121.0, # lon_max
-#                                                           39.0,   # lat_min
-#                                                           51.0)   # lat_max
-# options["plot"]["video"]["map_video"]["figsize"]       = (1000, 1000)
-# options["plot"]["video"]["map_video"]["proj"]          = "+proj=merc"
-# options["plot"]["video"]["map_video"]["title"]         = "Cascadia"
-# options["plot"]["video"]["map_video"]["output"]        =  dirs["dir_results"] *
-#                                                         "Slowquakes/real-time/"*
-#                                                         dirs["dir_case"] * 
-#                                                         "slip_potency_rate_map"
-# options["plot"]["video"]["map_video"]["show_progress"] = true
-# options["plot"]["video"]["map_video"]["framerate"]     = 20
-# options["plot"]["video"]["map_video"]["n_lats_edges"]  = 101
-# options["plot"]["video"]["map_video"]["Δt"]            = 1.0
-# options["plot"]["video"]["map_video"]["t0"]            = 2019.5
-# options["plot"]["video"]["map_video"]["t0_time"]       = true
-# # if abs.(color) .< color_thresh_perc, set color to 0
-# options["plot"]["video"]["map_video"]["color_thresh_perc"] = 0 #0.15
+make_video_map(slip_potency_rate,
+               tremors,
+               fault,
+               options["plot"]["video"]["map_video"]
+               )
 
-# options["plot"]["figures"] = Dict()
-# options["plot"]["figures"]["map_ts"] = Dict()
-# options["plot"]["figures"]["map_ts"]["figsize"] = (1510, 900)
-# options["plot"]["figures"]["map_ts"]["title"]   = "Cascadia"
-# options["plot"]["figures"]["map_ts"]["n_lats_edges"]  = 101
-# options["plot"]["figures"]["map_ts"]["color_thresh_perc"] = 0.15
-# options["plot"]["figures"]["map_ts"]["output"]   = dirs["dir_results"] *
-#                                                 "Slowquakes/real-time/"*
-#                                                 dirs["dir_case"] * 
-#                                                 "slip_potency_rate"
+###############
+### FIGURES ###
+###############
+options["plot"]["figures"] = Dict()
 
-# fig = make_figure_map_lat_time(slip_potency_rate, fault,
-#     options["plot"]["figures"]["map_ts"])
-# fig = make_figure_map_lat_time_ts(slip_potency_rate, fault,
-#     options["plot"]["figures"]["map_ts"])
-
-# options["plot"]["figures"]["comps"] = Dict()
-# options["plot"]["figures"]["comps"]["figsize"] = (500, 1000)
-# options["plot"]["figures"]["comps"]["ll_legend"] = (-128.2, 40.0)
-# options["plot"]["figures"]["comps"]["limits"]        = (-129.0, # lon_min
-#                                                         -117.5, # lon_max
-#                                                         39.0,   # lat_min
-#                                                         51.5)   # lat_max
-# options["plot"]["figures"]["comps"]["proj"]  = "+proj=merc"
-# options["plot"]["figures"]["comps"]["title"] = "IC "
-# options["plot"]["figures"]["comps"]["show_progress"] = true
-# options["plot"]["figures"]["comps"]["output"] = dirs["dir_results"] *
-#                                                 "Slowquakes/real-time/"*
-#                                                 dirs["dir_case"]
-# # fig = plot_comp(ICA, options["plot"]["figures"]["comps"])
-# # fig = plot_comp_gmt(ICA, options["plot"]["figures"]["comps"])
-
-# options["plot"]["figures"]["ts"] = Dict()
-# options["plot"]["figures"]["ts"]["figsize"] = (1000, 1000)
-# options["plot"]["figures"]["ts"]["name"] = "P161"
-# options["plot"]["figures"]["ts"]["output"] = dirs["dir_results"] *
-#                                             "Slowquakes/real-time/"*
-#                                             dirs["dir_case"]
-
-# # fig = plot_ts_gmt(X, options["plot"]["figures"]["ts"])
-
-# options["plot"]["figures"]["intro"] = Dict()
-# options["plot"]["figures"]["intro"]["figsize"] = (1000, 1000)
-# options["plot"]["figures"]["intro"]["limits"]  = (-129.0, # lon_min
-#                                                   -117.5, # lon_max
-#                                                    39.0,   # lat_min
-#                                                    51.5)   # lat_max
-# # options["plot"]["figures"]["intro"]["proj"]  = :Mercator
-# options["plot"]["figures"]["intro"]["title"] = "Cascadia"
-# options["plot"]["figures"]["intro"]["volcanoes"] = 
-#                                 options["scen"]["select"]["origin"][2:end,:]
-# options["plot"]["figures"]["intro"]["stns2plot"] = ["ALBH", "P161"]
-# # Tectonic plate boundaries in json format downloaded from
-# # https://github.com/fraxen/tectonicplates/tree/master?tab=readme-ov-file
-# # (original files from http://peterbird.name/oldFTP/PB2002/)
-# options["plot"]["figures"]["intro"]["tect_boundaries"] = dirs["dir_data"] *
-#                 "Plates/tectonicplates-master/GeoJSON/PB2002_boundaries.json"
-# options["plot"]["figures"]["intro"]["output"] = dirs["dir_results"] *
-#                                             "Slowquakes/real-time/"*
-#                                             dirs["dir_case"] * "intro"
-# # fig = plot_intro_map_gmt(X, fault, options["plot"]["figures"]["intro"])
+# Intro figure
+options["plot"]["figures"]["intro"] = Dict()
+options["plot"]["figures"]["intro"]["figsize"] = (1000, 1000)
+options["plot"]["figures"]["intro"]["limits"]  = (-129.0, # lon_min
+                                                  -117.5, # lon_max
+                                                   39.0,   # lat_min
+                                                   51.5)   # lat_max
+# options["plot"]["figures"]["intro"]["proj"]  = :Mercator
+options["plot"]["figures"]["intro"]["title"] = "Cascadia"
+options["plot"]["figures"]["intro"]["volcanoes"] = 
+                                options["scen"]["select"]["origin"][2:end,:]
+options["plot"]["figures"]["intro"]["stns2plot"] = ["ALBH", "P161"]
+# Tectonic plate boundaries in json format downloaded from
+# https://github.com/fraxen/tectonicplates/tree/master?tab=readme-ov-file
+# (original files from http://peterbird.name/oldFTP/PB2002/)
+options["plot"]["figures"]["intro"]["tect_boundaries"] = dirs["dir_data"] *
+                "Plates/tectonicplates-master/GeoJSON/PB2002_boundaries.json"
+options["plot"]["figures"]["intro"]["output"] = dirs["dir_results"] *
+                                            "Slowquakes/real-time/"*
+                                            dirs["dir_case"] * "intro"
+fig = plot_intro_map_gmt(X, fault, options["plot"]["figures"]["intro"])
 
 
+# Independent Components
+options["plot"]["figures"]["comps"] = Dict()
+options["plot"]["figures"]["comps"]["figsize"] = (500, 1000)
+options["plot"]["figures"]["comps"]["ll_legend"] = (-128.2, 40.0)
+options["plot"]["figures"]["comps"]["limits"]        = (-129.0, # lon_min
+                                                        -117.5, # lon_max
+                                                        39.0,   # lat_min
+                                                        51.5)   # lat_max
+options["plot"]["figures"]["comps"]["proj"]  = "+proj=merc"
+options["plot"]["figures"]["comps"]["title"] = "IC "
+options["plot"]["figures"]["comps"]["show_progress"] = true
+options["plot"]["figures"]["comps"]["output"] = dirs["dir_results"] *
+                                                "Slowquakes/real-time/"*
+                                                dirs["dir_case"]
+# fig = plot_comp(ICA, options["plot"]["figures"]["comps"])
+fig = plot_comp_gmt(ICA, options["plot"]["figures"]["comps"])
+
+
+# Power spectrum of the ICs
 # options["PSD"] = Dict()
 #  # sample rate of the signal
 # options["PSD"]["fs"] = 365.25; # number of samples per year
@@ -219,17 +211,46 @@ slip_potency_rate = create_model(mp, Cmp, ICA_dot, fault, options, ind_comps)
 # # fig = plot_psd_gmt(ICA, options["PSD"])
 
 
+# Map latitude-time and latitude-time with rate time series
+options["plot"]["figures"]["map_ts"] = Dict()
+options["plot"]["figures"]["map_ts"]["figsize"] = (1510, 900)
+options["plot"]["figures"]["map_ts"]["title"]   = "Cascadia"
+options["plot"]["figures"]["map_ts"]["n_lats_edges"]  = 101
+options["plot"]["figures"]["map_ts"]["color_thresh_perc"] = 0.0
+options["plot"]["figures"]["map_ts"]["output"]   = dirs["dir_results"] *
+                                                "Slowquakes/real-time/"*
+                                                dirs["dir_case"] * 
+                                                "slip_potency_rate"
+fig = make_figure_map_lat_time(slip_potency_rate, fault,
+    options["plot"]["figures"]["map_ts"])
+fig = make_figure_map_lat_time_ts(slip_potency_rate, fault,
+    options["plot"]["figures"]["map_ts"])
+
+
+# Selected time series
+options["plot"]["figures"]["ts"] = Dict()
+options["plot"]["figures"]["ts"]["figsize"] = (1000, 1000)
+options["plot"]["figures"]["ts"]["output"] = dirs["dir_results"] *
+                                            "Slowquakes/real-time/"*
+                                            dirs["dir_case"]
+
+options["plot"]["figures"]["ts"]["name"] = "ALBH"
+fig = plot_ts_gmt(X, options["plot"]["figures"]["ts"])
+options["plot"]["figures"]["ts"]["name"] = "P161"
+fig = plot_ts_gmt(X, options["plot"]["figures"]["ts"])
+
+
+
+
+###############################
+### DYNAMICAL LOCAL INDICES ###
+###############################
 # options["local_indices"] = Dict()
 # options["local_indices"]["p"]   = 0.99
 # options["local_indices"]["est"] = :exp
 
 # d, θ = calc_d_θ(slip_potency_rate, options["local_indices"])
 
-# make_video_map(slip_potency_rate,
-#                tremors,
-#                fault,
-#                options["plot"]["video"]["map_video"]
-#                )
 # make_video_map_dθ(slip_potency_rate, tremors, fault, d, θ,
 #                     options["plot"]["video"]["map_video"])
 

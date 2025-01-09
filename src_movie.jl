@@ -148,7 +148,7 @@ function make_video_map(obs_var, tremors, fault, options)
     ###################
     ### TIME SERIES ###
     ###################
-    sum_tr = sum(tremors["N"], dims=1)[1,:]
+    sum_tr = sum(tremors["R"], dims=1)[1,:]
     axb = Axis(gb[1,1],
                xlabel=L"Time ($yr$)",
                ylabel="tbd",
