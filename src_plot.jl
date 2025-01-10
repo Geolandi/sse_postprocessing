@@ -8,12 +8,16 @@ function plot_intro_map_gmt(X, fault, options)
     limits = options["limits"]
     # proj = options["proj"]
     title = options["title"]
-    output = options["output"]
-    
     ll_volcanoes = options["volcanoes"]
     boundaries_file = options["tect_boundaries"]
-    
     stns2plot = options["stns2plot"]
+    dir_output = options["dir_output"]
+    output = options["output"]
+    
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+    
     n_stns2plot = length(stns2plot)
     llh_stns = zeros(n_stns2plot,3)
     for i=1:n_stns2plot
@@ -184,7 +188,7 @@ function plot_intro_map_gmt(X, fault, options)
     GMT.plot!(rect,
             region="-180/-20/0/70", lw=2, lc=:blue,
             show=false,
-            savefig=output*".png")
+            savefig=dir_output * output * ".png")
     rm("xx000.dat")
     if isfile("./gmt.history")
         rm("./gmt.history")
@@ -196,7 +200,11 @@ end
 function plot_ts_gmt(X, options)
     figsize = options["figsize"]
     name = options["name"]
-    output = options["output"]
+    dir_output = options["dir_output"]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
     
     timeline = X["timeline"][1,:]
     t0 = timeline[1]
@@ -229,7 +237,8 @@ function plot_ts_gmt(X, options)
 
     subplot(grid=(3,1), dims=(size=(15,15), frac=((1,), (1,1,1)) ),
             title=name, row_axes=(left=false), col_axes=(bott=false),
-            margins=0, autolabel=true, savefig=output*"/"*name*".png")
+            margins=0, autolabel=true,
+            savefig=dir_output * name * ".png")
         GMT.basemap(region=(t0,t1,ye_min,ye_max),
                     xaxis=(annot=5,ticks=1),
                     yaxis=(annot=5,ticks=1),
@@ -290,9 +299,14 @@ function plot_comp_gmt(decomp, options)
     xy_legend = options["ll_legend"]
     proj = options["proj"]
     title = options["title"]
-    output = options["output"]
     show_progress = options["show_progress"]
+    dir_output = options["dir_output"]
+    output = options["output"]
 
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+    
     x = decomp["llh"][1:3:end,1]
     y = decomp["llh"][1:3:end,2]
     append!(x, xy_legend[1])
@@ -343,7 +357,8 @@ function plot_comp_gmt(decomp, options)
         
         subplot(grid=(2,1), dims=(size=(7.1,15), frac=((1,), (1,3)) ),
             title=title*string(i), row_axes=(left=false), col_axes=(bott=false),
-            margins=0, autolabel=true, savefig=output*"/comp"*string(i)*".png",
+            margins=0, autolabel=true,
+            savefig=dir_output*output*string(i)*".png",
             par=((FONT_HEADING="24p,Helvetica,black"),)
             )
             GMT.basemap(region=(t0,t1,-0.1,1.1),
@@ -418,9 +433,14 @@ function plot_psd_gmt(decomp, options)
     n_comps = size(ICA["S"])[1]
 
     fs = options["fs"]
-    output = options["output"]
     color_list = options["color_list"]
+    dir_output = options["dir_output"]
+    output = options["output"]
 
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+    
     n_subplots_x, n_subplots_y = options["subplot_grid"]
     n_subplots = n_subplots_x * n_subplots_y
     n_per_subplot = Integer(floor(n_comps / n_subplots));
@@ -458,7 +478,7 @@ function plot_psd_gmt(decomp, options)
     subplot(grid=(n_subplots_x,n_subplots_y), dims=(size=(15,15),
         frac=(ntuple(x -> 1, n_subplots_y), ntuple(x -> 1, n_subplots_x)) ),
             title="PSD", row_axes=(left=false), col_axes=(bott=false),
-            margins=0, autolabel=true, savefig=output*".png")
+            margins=0, autolabel=true, savefig=dir_output*output*".png")
             
         for iy=1:n_subplots_y
             for ix=1:n_subplots_x
@@ -529,7 +549,12 @@ function plot_comp(decomp, options)
     xy_legend = options["ll_legend"]
     proj = options["proj"]
     title = options["title"]
+    dir_output = options["dir_output"]
     output = options["output"]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
 
     x = decomp["llh"][1:3:end,1]
     y = decomp["llh"][1:3:end,2]
@@ -683,7 +708,7 @@ function plot_comp(decomp, options)
         rowgap!(gab, -50)
         rowsize!(gab, 1, Auto(0.3))
 
-        save(output*"/comp"*string(i)*".png", fig)
+        save(output_dir*output*string(i)*".png", fig)
     end
     return nothing
 end
@@ -753,7 +778,12 @@ function make_figure_map_lat_time(obs_var, fault, options)
     n_lats_edges = options["n_lats_edges"]
     color_thresh  = options["color_thresh_perc"]
     output = options["output"]
+    dir_output = options["dir_output"]
 
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+    
     timeline = obs_var["timeline"][1,:]
     obs = obs_var["obs"]
     n_samples = length(timeline)
@@ -847,7 +877,7 @@ function make_figure_map_lat_time(obs_var, fault, options)
              ticks=ticks,
              ticklabelsize=24
              )
-    save(output*"_"*title*".png", fig)
+    save(dir_output*output*"_"*title*".png", fig)
     return fig
 end
 
@@ -857,8 +887,13 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     title = options["title"]
     n_lats_edges = options["n_lats_edges"]
     color_thresh  = options["color_thresh_perc"]
+    dir_output = options["dir_output"]
     output = options["output"]
 
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+    
     timeline = obs_var["timeline"][1,:]
     obs = copy(obs_var["obs"])
     #obs[fault["xyz"][:,3].<-30 .&& fault["xyz"][:,3].>0, :] .= 0
@@ -1000,6 +1035,6 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     rowgap!(gab, 0)
     rowsize!(gab, 1, Auto(0.3))
     
-    save(output*"_ts_"*title*".png", fig)
+    save(dir_output*output*"_ts_"*title*".png", fig)
     return fig
 end
