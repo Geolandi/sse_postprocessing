@@ -8,7 +8,6 @@ function make_video_map(obs_var, tremors, fault, options)
     figsize       = options["figsize"]
     proj          = options["proj"]
     title         = options["title"]
-    output        = options["output"]
     show_progress = options["show_progress"]
     framerate     = options["framerate"]
     n_lats_edges  = options["n_lats_edges"]
@@ -16,6 +15,12 @@ function make_video_map(obs_var, tremors, fault, options)
     t0            = options["t0"] 
     t0_time       = options["t0_time"]
     color_thresh  = options["color_thresh_perc"]
+    dir_output = options["dir_output"]
+    output = options["output"]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
 
     timeline = obs_var["timeline"][1,:]
     obs = obs_var["obs"]
@@ -219,7 +224,8 @@ function make_video_map(obs_var, tremors, fault, options)
     progress = ProgressMeter.Progress(
         n_samples-ind_t0; desc = "Movie time step: ", enabled = show_progress
     )
-    record(fig, output*".mp4", timestamps; framerate = framerate) do time_idx
+    record(fig, dir_output*output*".mp4", timestamps;
+                        framerate = framerate) do time_idx
         ind_t_obs[] = time_idx
         ind_tr_obs[] = dates_tremors .== dates[time_idx]
         xlims!(axb, t1.val-Δt, t1.val)
@@ -236,7 +242,6 @@ function make_video_map_dθ(obs_var, tremors, fault, d, θ, options)
     figsize       = options["figsize"]
     proj          = options["proj"]
     title         = options["title"]
-    output        = options["output"]
     show_progress = options["show_progress"]
     framerate     = options["framerate"]
     n_lats_edges  = options["n_lats_edges"]
@@ -244,6 +249,12 @@ function make_video_map_dθ(obs_var, tremors, fault, d, θ, options)
     t0            = options["t0"] 
     t0_time       = options["t0_time"]
     n_tail        = options["n_tail"]
+    dir_output = options["dir_output"]
+    output = options["output"]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
 
     timeline = obs_var["timeline"][1,:]
     obs = obs_var["obs"]
@@ -511,7 +522,8 @@ function make_video_map_dθ(obs_var, tremors, fault, d, θ, options)
     progress = ProgressMeter.Progress(
         n_samples-ind_t0; desc = "Movie time step: ", enabled = show_progress
     )
-    record(fig, output*".mp4", timestamps; framerate = framerate) do time_idx
+    record(fig, dir_output*output*".mp4", timestamps;
+                    framerate = framerate) do time_idx
         ind_t_obs[] = time_idx
         ind_tr_obs[] = dates_tremors .== dates[time_idx]
         xlims!(axb, t1.val-Δt, t1.val)
