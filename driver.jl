@@ -216,25 +216,38 @@ options["PSD"] = Dict()
 options["PSD"]["fs"] = 365.25; # number of samples per year
 options["PSD"]["n_sample"] = 2; # to reproduce Matlab results
 options["PSD"]["f_last"] = 3.655466864042958 # to reproduce Matlab results
-#options["PSD"]["max_freq"] = 4; # max freq to plot
-options["PSD"]["subplot_grid"] = (4,2)
-options["PSD"]["label"] = "IC "
-options["PSD"]["title"] = "Power Spectral Density"
-options["PSD"]["dir_output"] = dirs["dir_results"] * "Slowquakes/real-time/"* 
-                            dirs["dir_case"] * solution_date
-options["PSD"]["output"] = "PSD"
-options["PSD"]["color_list"] = ["0/84/147", "255/165/0", "30/150/65", "193/43/43"]
-fig = plot_psd_gmt(ICA, options["PSD"])
+freqs, psds = calc_psd(ICA, options["PSD"])
+
+options["plot"]["PSD"] = copy(options["PSD"])
+options["plot"]["PSD"]["subplot_grid"] = (4,2)
+options["plot"]["PSD"]["label"] = "IC "
+options["plot"]["PSD"]["title"] = "Power Spectral Density"
+options["plot"]["PSD"]["dir_output"] = dirs["dir_results"] *
+                                                        "Slowquakes/real-time/"* 
+                                                        dirs["dir_case"] *
+                                                        solution_date
+options["plot"]["PSD"]["output"] = "PSD"
+options["plot"]["PSD"]["color_list"] = ["0/84/147", "255/165/0",
+                                        "30/150/65", "193/43/43"]
+# fig = plot_psd_gmt(freqs, psds, options["plot"]["PSD"])
 
 options["plot"]["selection_params"] = Dict()
-options["plot"]["selection_params"][""] = 
-options["plot"]["selection_params"]["dir_output"] = dirs["dir_results"] *
-                            "Slowquakes/real-time/" * 
-                            dirs["dir_case"] * solution_date
-options["plot"]["selection_params"]["output"] = "misfit_comps"
+options["plot"]["selection_params"]["frequency_analysis"] = 
+                options["inversion"]["select_comps"]["frequency_analysis"]
+options["plot"]["selection_params"]["frequency_analysis"]["PSD"] = options["PSD"]
 options["plot"]["selection_params"]["sigma"] = options["inversion"]["sigma"][1,:]
-options["plot"]["selection_params"]["title"] = "Smoothing parameter selection"
-fig = plot_select_smoothing(misfit_comps, options["plot"]["selection_params"])
+options["plot"]["selection_params"]["titlea"] = "ICs selection"
+options["plot"]["selection_params"]["titleb"] = "Smoothing parameter selection"
+options["plot"]["selection_params"]["title"] = "Automatic selections"
+options["plot"]["selection_params"]["dir_output"] = dirs["dir_results"] *
+                                                    "Slowquakes/real-time/" * 
+                                                    dirs["dir_case"] *
+                                                    solution_date
+options["plot"]["selection_params"]["output"] = "misfit_comps"
+fig = plot_select_comps_and_smoothing(freqs, psds, misfit_comps,
+                            options["plot"]["selection_params"])
+
+
 
 # Map latitude-time and latitude-time with rate time series
 options["plot"]["figures"]["map_ts"] = Dict()

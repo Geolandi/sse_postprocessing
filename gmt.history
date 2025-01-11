@@ -1,11 +1,4 @@
 # GMT 6 Session common arguments shelf
 BEGIN GMT 6.5.0
-B	pya1ppy+lPowerpx1WSne
-J	X
-JX	X14cl
-Jx	x1i
-R	0.0001/1.0/19075.28831600743/1.0271688822341311e8
-X	a3.0065i
-Y	a0i
-@L	2
+RG	0/0/0/0
 END

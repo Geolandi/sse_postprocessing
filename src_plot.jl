@@ -3,6 +3,7 @@ using GeometryBasics
 using DSP
 using GMT
 using Dates
+include("src_selections.jl")
 
 function plot_intro_map_gmt(X, fault, options)
     figsize = options["figsize"]
@@ -429,62 +430,163 @@ function plot_comp_gmt(decomp, options)
     return nothing
 end
 
-function plot_select_smoothing(misfit_comps, options)
+function plot_select_comps_and_smoothing(f, psds, misfit_comps, options)
 
+    options_freq_analysis = options["frequency_analysis"]
+    f_skip      = options_freq_analysis["f_skip"]
+    sigmaf_skip = options_freq_analysis["sigmaf_skip"]
+    f_threshold = options_freq_analysis["f_threshold"]
+    cs_psd1     = options_freq_analysis["cs_psd1"]
+    cs_psd2     = options_freq_analysis["cs_psd2"]
+
+    options_PSD = options_freq_analysis["PSD"]
+    fs       = options_PSD["fs"]
+    n_sample = options_PSD["n_sample"]
+    f_last   = options_PSD["f_last"]
+    
     sigmas = options["sigma"]
+    
+    titlea = options["titlea"]
+    titleb = options["titleb"]
     title = options["title"]
     dir_output = options["dir_output"]
     output = options["output"]
 
+
+
+    n_comp = size(psds)[2]
     n_comps_inverted = size(misfit_comps)[2]
-    x_min = minimum(sigmas)
-    x_max = maximum(sigmas)
-    y_min = minimum(misfit_comps)
-    y_max = maximum(misfit_comps)
-    GMT.basemap(region=(x_min, x_max, 0.9*y_min, y_max*1.1),
+    x_min_axb = minimum(sigmas)
+    x_max_axb = maximum(sigmas)
+    y_min_axb = minimum(misfit_comps)
+    y_max_axb = maximum(misfit_comps)
+
+
+    f_low  = f_skip - sigmaf_skip
+    f_high = f_skip + sigmaf_skip
+    ind_f2keep = fill(true,size(f))
+    for i=1:size(f_low)[2]
+        ind_f2rm_tmp = f .>= f_low[i] .&& f .<= f_high[i]
+        ind_f2keep[ind_f2rm_tmp] .= false
+    end
+    f2plot = f[ind_f2keep]
+    n_freq_f2keep = sum(ind_f2keep)
+    cs = zeros(n_comp,n_freq_f2keep)
+    for i=1:n_comp
+        psd_norm = psds[ind_f2keep,i] ./ sum(psds[:,i])
+        cs[i,:] = cumsum(psd_norm)
+    end
+
+    f_thr = minimum(abs.(f[ind_f2keep] .- f_threshold))
+    ind_f_thr = argmin(abs.(f[ind_f2keep] .- f_threshold))
+
+    ind_comps_cs = findall(cs[:,ind_f_thr] .>= cs_psd1 .&&
+                           cs[:,ind_f_thr] .<= cs_psd2)
+
+    ind_comps2rm   = []
+    ind_comps2keep = []
+    n_ind_comps_cs = length(ind_comps_cs)
+    n_f_skip = length(f_skip)
+    for i=1:n_ind_comps_cs
+        j = ind_comps_cs[i]
+        psd_max = maximum(psds[:,j])
+        ind_f_max = argmax(psds[:,j])
+        f_max = f[ind_f_max]
+        for k=1:n_f_skip
+            if (f_max .>= f_skip[k] .- sigmaf_skip[k]) .&& 
+                    (f_max .<= f_skip[k] .+ sigmaf_skip[k])
+                append!(ind_comps2rm, i)
+            else
+                append!(ind_comps2keep, i)
+            end
+        end
+    end
+
+    ind_comps = copy(ind_comps_cs)
+    deleteat!(ind_comps, ind_comps2rm)
+    
+    x_min_axa = minimum(f)
+    x_max_axa = maximum(f)
+    y_min_axa = minimum(cs)
+    y_max_axa = maximum(cs)
+
+    subplot(grid=(1,2), dims=(size=(30,15),
+        frac=(ntuple(x -> 1, 2), ntuple(x -> 1, 1)) ),
+            title=title, row_axes=(left=false), col_axes=(bott=false),
+            margins=1, autolabel=true, savefig=dir_output*output*".png")
+
+        GMT.basemap(region=(x_min_axa, x_max_axa, 0.9*y_min_axa, y_max_axa*1.1),
+                axes=:WSne,
+                xlabel="Frequency (1/yr)",
+                ylabel="Cumulative PSD",
+                # xaxis=(annot=0.5),
+                # yaxis=(annot=0.2),
+                title=titlea,
+                panel=(1,1)
+                )
+        
+        for i=1:n_comp
+            GMT.plot!(f2plot, cs[i,:], lw=0.5, lc="0/84/147")
+        end
+        n_ind_comps = length(ind_comps)
+        for i=1:n_ind_comps
+            GMT.plot!(f2plot, cs[ind_comps[i],:], pen="2p,193/43/43")
+        end
+        n_ind_comps2rm = length(ind_comps2rm)
+        for i=1:n_ind_comps2rm
+            GMT.plot!(f2plot, cs[ind_comps_cs[ind_comps2rm[i]],:],
+                    pen="2p,255/165/0,dashed")
+        end
+        # plot(f(1:ind_f_thr), cs(:,1:ind_f_thr), '-k');
+        # plot(f(1:ind_f_thr), cs(ind_comps,1:ind_f_thr), '-r', ...
+        #         'LineWidth', LineWidth);
+        # plot(f(1:ind_f_thr), cs(ind_comps_cs(ind_comps2rm),1:ind_f_thr), '--b', ...
+        #         'LineWidth', LineWidth);
+        
+        GMT.basemap(region=(x_min_axb, x_max_axb, 0.9*y_min_axb, y_max_axb*1.1),
                 proj=:logxy,
                 axes=:WSne,
                 xlabel="@~s@~@-m0@-",
                 ylabel="Misfit spatial distribution (non dimensional)",
                 xaxis=(annot=1, scale=:pow),
                 yaxis=(annot=1, scale=:pow),
-                title=title,
+                title=titleb,
+                panel=(1,2)
                 )
+        for i=1:n_comps_inverted
+            GMT.plot!(sigmas, misfit_comps[:,i],lw=2,lc="0/84/147")
+        end
+        for i=1:n_comps_inverted
+            ind_min = argmin(misfit_comps[:,i])[1]
+            if i<n_comps_inverted    
+                GMT.scatter!(sigmas[ind_min], misfit_comps[ind_min,i],
+                    fill="255/165/0",
+                    marker=:circle,
+                    markersize=0.3,
+                    markeredgecolor=:black)
+            else
+                GMT.scatter!(sigmas[ind_min], misfit_comps[ind_min,i],
+                    fill="255/165/0",
+                    marker=:circle,
+                    markersize=0.3,
+                    markeredgecolor=:black,
+                    )
+            end
+        end
+    subplot()
     # GMT.basemap(region=(1,10000,1e20,1e25), figsize=(25,15), proj=:logxy, frame=(axes=:WS,),
     #     xaxis=(annot=2, label=:Wavelength),
     #     yaxis=(annot=1, ticks=3, label=:Power, scale=:pow), show=1)
 
-    for i=1:n_comps_inverted
-        GMT.plot!(sigmas, misfit_comps[:,i],lw=2,lc="0/84/147")
-    end
-    for i=1:n_comps_inverted
-        ind_min = argmin(misfit_comps[:,i])[1]
-        if i<n_comps_inverted    
-            GMT.scatter!(sigmas[ind_min], misfit_comps[ind_min,i],
-                fill="255/165/0",
-                marker=:circle,
-                markersize=0.3,
-                markeredgecolor=:black)
-        else
-            GMT.scatter!(sigmas[ind_min], misfit_comps[ind_min,i],
-                fill="255/165/0",
-                marker=:circle,
-                markersize=0.3,
-                markeredgecolor=:black,
-                savefig=dir_output*output*".png")
-        end
-    end
+    
     return fig
 end
 
-function plot_psd_gmt(decomp, options)
+function plot_psd_gmt(f, psds, options)
 
-    n_comps = size(ICA["S"])[1]
+    n_comps = size(psds)[2]
 
-    fs = options["fs"]
     color_list = options["color_list"]
-    n_sample = options["n_sample"]
-    f_last = options["f_last"]
     label = options["label"]
     title = options["title"]
     dir_output = options["dir_output"]
@@ -499,29 +601,11 @@ function plot_psd_gmt(decomp, options)
     n_per_subplot = Integer(floor(n_comps / n_subplots));
     n_extra = Integer(mod(n_comps, n_subplots));
 
-    timeline = decomp["timeline"][1,:]
-    V = decomp["V"]
-    
-    p = periodogram(V[:,1]; nfft=Integer(round(n_samples*n_sample)), fs=fs)
-    f = DSP.freq(p)[:]
-    f1 = 1/n_samples*(0:1:round(365.25*n_samples/n_freq));
-
     f0 = f[1]
-    ind_last = findlast(f .< f_last)
-    f1 = f[ind_last]
-    f = f[1:ind_last]
-    n_freqs = length(f)
-    psds = zeros(n_freqs,n_comps)
-    
-    for i=1:n_comps
-        p = periodogram(V[:,i]; nfft=Integer(round(n_samples*n_sample)), fs=fs)
-        psds[:,i] = DSP.power(p)[1:ind_last]
-    end
-
+    f1 = f[end]
     y_min = 0
     i = 0
     k = 0
-
     x_legend = f[end]*0.9
     subplot(grid=(n_subplots_x,n_subplots_y), dims=(size=(15,15),
         frac=(ntuple(x -> 1, n_subplots_y), ntuple(x -> 1, n_subplots_x)) ),
