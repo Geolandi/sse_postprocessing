@@ -2,6 +2,7 @@ using GLMakie
 using GeometryBasics
 using DSP
 using GMT
+using Dates
 
 function plot_intro_map_gmt(X, fault, options)
     figsize = options["figsize"]
@@ -145,7 +146,7 @@ function plot_intro_map_gmt(X, fault, options)
             )
 
     GMT.scatter!(ll_volcanoes[:,1],ll_volcanoes[:,2],
-            color=:orange,
+            color="255/165/0",
             #color="30/150/65",
             marker=:triangle,
             markersize=0.3,
@@ -276,8 +277,8 @@ function plot_ts_gmt(X, options)
                 yaxis=(annot=5,ticks=1),
                 par=(:MAP_FRAME_TYPE,"fancy+"),
                 axes=:WSne,
-                xlabel=L"Time ($yr$)",
-                ylabel=L"Vertical ($mm$)",
+                xlabel="Time (yr)",
+                ylabel="Vertical (mm)",
                 panel=(3,1)
                 )
         GMT.plot(u_vars,
@@ -428,12 +429,64 @@ function plot_comp_gmt(decomp, options)
     return nothing
 end
 
+function plot_select_smoothing(misfit_comps, options)
+
+    sigmas = options["sigma"]
+    title = options["title"]
+    dir_output = options["dir_output"]
+    output = options["output"]
+
+    n_comps_inverted = size(misfit_comps)[2]
+    x_min = minimum(sigmas)
+    x_max = maximum(sigmas)
+    y_min = minimum(misfit_comps)
+    y_max = maximum(misfit_comps)
+    GMT.basemap(region=(x_min, x_max, 0.9*y_min, y_max*1.1),
+                proj=:logxy,
+                axes=:WSne,
+                xlabel="@~s@~@-m0@-",
+                ylabel="Misfit spatial distribution (non dimensional)",
+                xaxis=(annot=1, scale=:pow),
+                yaxis=(annot=1, scale=:pow),
+                title=title,
+                )
+    # GMT.basemap(region=(1,10000,1e20,1e25), figsize=(25,15), proj=:logxy, frame=(axes=:WS,),
+    #     xaxis=(annot=2, label=:Wavelength),
+    #     yaxis=(annot=1, ticks=3, label=:Power, scale=:pow), show=1)
+
+    for i=1:n_comps_inverted
+        GMT.plot!(sigmas, misfit_comps[:,i],lw=2,lc="0/84/147")
+    end
+    for i=1:n_comps_inverted
+        ind_min = argmin(misfit_comps[:,i])[1]
+        if i<n_comps_inverted    
+            GMT.scatter!(sigmas[ind_min], misfit_comps[ind_min,i],
+                fill="255/165/0",
+                marker=:circle,
+                markersize=0.3,
+                markeredgecolor=:black)
+        else
+            GMT.scatter!(sigmas[ind_min], misfit_comps[ind_min,i],
+                fill="255/165/0",
+                marker=:circle,
+                markersize=0.3,
+                markeredgecolor=:black,
+                savefig=dir_output*output*".png")
+        end
+    end
+    return fig
+end
+
 function plot_psd_gmt(decomp, options)
 
     n_comps = size(ICA["S"])[1]
 
     fs = options["fs"]
     color_list = options["color_list"]
+    n_sample = options["n_sample"]
+    f_last = options["f_last"]
+    label = options["label"]
+    title = options["title"]
     dir_output = options["dir_output"]
     output = options["output"]
 
@@ -448,40 +501,35 @@ function plot_psd_gmt(decomp, options)
 
     timeline = decomp["timeline"][1,:]
     V = decomp["V"]
-    V_var = decomp["var_V"]
-    min_V = minimum(V, dims=1)
-    max_V = maximum(V, dims=1)
-
-    norm_facts = max_V .- min_V
-    temp_funcs = (V .- min_V) ./ norm_facts
-    temp_funcs_err = sqrt.(decomp["var_V"]) ./ norm_facts
-
-    f = DSP.freq(periodogram(temp_funcs[:,1]; fs=fs))[:][2:end]
+    
+    p = periodogram(V[:,1]; nfft=Integer(round(n_samples*n_sample)), fs=fs)
+    f = DSP.freq(p)[:]
+    f1 = 1/n_samples*(0:1:round(365.25*n_samples/n_freq));
 
     f0 = f[1]
-    ind_last = 40
+    ind_last = findlast(f .< f_last)
     f1 = f[ind_last]
+    f = f[1:ind_last]
     n_freqs = length(f)
-    freqs = zeros(n_freqs)
     psds = zeros(n_freqs,n_comps)
     
     for i=1:n_comps
-        temp_func = temp_funcs[:,i]
-        temp_func_err = temp_funcs_err[:,i]
-        psds[:,i] = DSP.power(periodogram(temp_func; fs=fs))[2:end]
+        p = periodogram(V[:,i]; nfft=Integer(round(n_samples*n_sample)), fs=fs)
+        psds[:,i] = DSP.power(p)[1:ind_last]
     end
 
     y_min = 0
     i = 0
     k = 0
-    
+
+    x_legend = f[end]*0.9
     subplot(grid=(n_subplots_x,n_subplots_y), dims=(size=(15,15),
         frac=(ntuple(x -> 1, n_subplots_y), ntuple(x -> 1, n_subplots_x)) ),
-            title="PSD", row_axes=(left=false), col_axes=(bott=false),
+            title=title, row_axes=(left=false), col_axes=(bott=false),
             margins=0, autolabel=true, savefig=dir_output*output*".png")
             
-        for iy=1:n_subplots_y
-            for ix=1:n_subplots_x
+        for ix=1:n_subplots_x
+            for iy=1:n_subplots_y
                 i = i+1;
                 if i<=n_extra
                     n_per_subplot_i = copy(n_per_subplot+1);
@@ -489,7 +537,9 @@ function plot_psd_gmt(decomp, options)
                     n_per_subplot_i = copy(n_per_subplot);
                 end
                 
-                y_max = maximum(psds[:,1+k:1+k+n_per_subplot_i])
+                y_max = maximum(psds[:,1+k:k+n_per_subplot_i])
+                y_legend = y_max*0.9
+                dy = -0.15*y_max
                 if ix == n_subplots_x && iy == n_subplots_y
                     ann = Integer(floor((1.1*y_max - y_min) / 3))
                     GMT.basemap(region=(f0,f1,y_min,y_max*1.1),
@@ -531,9 +581,13 @@ function plot_psd_gmt(decomp, options)
                                 panel=(ix,iy)
                                 )
                 end
-                for j=1:n_per_subplot
+                for j=1:n_per_subplot_i
                     k = k + 1;
-                    GMT.plot!(f,psds[:,k])
+                    GMT.plot!(f,psds[:,k],lw=2,lc=color_list[j])
+                    GMT.text!(label*string(k), x=x_legend, y=y_legend+(j-1)*dy,
+                        par=((FONT_ANNOT_PRIMARY="12p,Helvetica,"*color_list[j]),
+                        (FONT_LABEL="12p,Helvetica,"*color_list[j]),),
+                        justify=:CB)
                 end
             end
         end
@@ -777,6 +831,7 @@ function make_figure_map_lat_time(obs_var, fault, options)
     title = options["title"]
     n_lats_edges = options["n_lats_edges"]
     color_thresh  = options["color_thresh_perc"]
+    n_future_days = options["n_future_days"]
     output = options["output"]
     dir_output = options["dir_output"]
 
@@ -786,6 +841,10 @@ function make_figure_map_lat_time(obs_var, fault, options)
     
     timeline = obs_var["timeline"][1,:]
     obs = obs_var["obs"]
+
+    tremors_timeline = tremors["timeline"]
+    tremors_timeline_R = tremors["timeline_R"][1,:]
+
     n_samples = length(timeline)
     color_exp = Int(minimum([ceil(log10(abs(minimum(obs)))),
                         ceil(log10(abs(maximum(obs))))]) - 1)
@@ -852,13 +911,16 @@ function make_figure_map_lat_time(obs_var, fault, options)
     translate!(hm, 0, 0, 100) # move above surface plot
     tr_map = Makie.scatter!(
         ax,
-        tremors["timeline"], tremors["lat"],
+        tremors_timeline, tremors["lat"],
         color=:black,
         markersize=1,
         alpha=1.0,
         )
     translate!(tr_map, 0, 0, 200) # move above surface plot
-    
+
+    xlims!(ax, timeline[1],
+                DateFormats.yeardecimal(today() + Day(n_future_days)))
+
     ################
     ### COLORBAR ###
     ################
@@ -887,6 +949,7 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     title = options["title"]
     n_lats_edges = options["n_lats_edges"]
     color_thresh  = options["color_thresh_perc"]
+    n_future_days = options["n_future_days"]
     dir_output = options["dir_output"]
     output = options["output"]
 
@@ -896,6 +959,10 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     
     timeline = obs_var["timeline"][1,:]
     obs = copy(obs_var["obs"])
+
+    tremors_timeline = tremors["timeline"]
+    tremors_timeline_R = tremors["timeline_R"][1,:]
+
     #obs[fault["xyz"][:,3].<-30 .&& fault["xyz"][:,3].>0, :] .= 0
     n_samples = length(timeline)
     color_exp = Int(minimum([ceil(log10(abs(minimum(obs)))),
@@ -964,7 +1031,7 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
                )
     sum_tr_line = Makie.lines!(
         axa,
-        timeline, sum_tr ./ maximum(sum_tr),
+        tremors_timeline_R, sum_tr ./ maximum(sum_tr),
         color=:black,
         )
     max_obs_norm = max_obs ./ maximum(max_obs)
@@ -979,7 +1046,9 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     #     timeline, min_obs_norm,
     #     color=:blue,
     #     )
-    xlims!(axa, timeline[1], timeline[end])
+    #xlims!(axa, timeline[1], timeline[end])
+    xlims!(axa, timeline[1],
+                DateFormats.yeardecimal(today() + Day(n_future_days)))
     ylims!(axa, minimum([0, minimum(max_obs_norm)]), 1)
     # ylims!(axa, minimum([0, minimum(max_obs_norm), minimum(min_obs_norm)]), 1)
     #########################
@@ -1003,13 +1072,15 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     translate!(hm, 0, 0, 100) # move above surface plot
     tr_map = Makie.scatter!(
         axb,
-        tremors["timeline"], tremors["lat"],
+        tremors_timeline, tremors["lat"],
         color=:black,
         markersize=1,
         alpha=1.0,
         )
     translate!(tr_map, 0, 0, 200) # move above surface plot
-    xlims!(axb, timeline[1], timeline[end])
+    #xlims!(axb, timeline[1], timeline[end])
+    xlims!(axb, timeline[1], 
+                DateFormats.yeardecimal(today() + Day(n_future_days)))
     ################
     ### COLORBAR ###
     ################
@@ -1037,4 +1108,36 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     
     save(dir_output*output*"_ts_"*title*".png", fig)
     return fig
+end
+
+function get_color(obs, color_thresh)
+    color_exp = Int(minimum([ceil(log10(abs(minimum(obs)))),
+                        ceil(log10(abs(maximum(obs))))]) - 1)
+    color = obs ./ 10^color_exp
+    color_max = maximum(abs.(color))
+    color_threshold = color_thresh*color_max
+    color[abs.(color) .< color_threshold] .= 0
+    colorrange = (-ceil(color_max), ceil(color_max))
+    return color, colorrange, color_exp
+end
+
+function get_color_lontime_map(color, fault, n_samples, n_lats_edges)
+    n_lats = n_lats_edges - 1;
+    lat_min = minimum(minimum(fault["lat"]));
+    lat_max = maximum(maximum(fault["lat"]));
+    lats_edges = range(lat_min, stop=lat_max, length=n_lats_edges);
+    lats = lats_edges[1:end-1] + (lats_edges[2:end]-lats_edges[1:end-1])/2;
+    color_lats_min = zeros(n_lats,n_samples);
+    color_lats_max = zeros(n_lats,n_samples);
+
+    for i=1:n_lats
+        ind_lats = fault["llh"][:,2] .> lats_edges[i] .&&
+                   fault["llh"][:,2] .<= lats_edges[i+1];
+        color_lats_min[i,:] = minimum(color[ind_lats,:], dims=1);
+        color_lats_max[i,:] = maximum(color[ind_lats,:], dims=1);
+    end
+    color_lats_minmax = color_lats_max;
+    inds = color_lats_max .< abs.(color_lats_min);
+    color_lats_minmax[inds] = color_lats_min[inds];
+    return color_lats_minmax, lats
 end
