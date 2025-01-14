@@ -5,7 +5,7 @@ using DateFormats
 include("src_time.jl")
 
 
-function make_video_map_2(obs_var, tremors, fault, options)
+function make_video_map(obs_var, tremors, fault, options)
 
     limits        = options["limits"]
     figsize       = options["figsize"]
@@ -19,6 +19,7 @@ function make_video_map_2(obs_var, tremors, fault, options)
     t1            = options["t1"] 
     color_thresh  = options["color_thresh_perc"]
     n_future_days = options["n_future_days"]
+    dir_coastlines = options["dir_coastlines"]
     dir_output = options["dir_output"]
     output = options["output"]
 
@@ -91,12 +92,6 @@ function make_video_map_2(obs_var, tremors, fault, options)
     ind_tremors = findall(x -> x in dates2plot, tremors_dates)
     ind_tremors_R = findall(x -> x in dates2plot, tremors_dates_R)
 
-    # println(size(dates2plot))
-    # println(size(tremors_dates_R))
-    # println(ind_tremors_R[end])
-    # println(n_samples2plot)
-    # println(size(sumR))
-    # stop
     # Fill with values the variables to plot
     obs_on_fault2plot[:,ind_obs] = obs_on_fault[:,:]
     obs_timelats2plot[:,ind_obs] = obs_timelats[:,:]
@@ -119,14 +114,6 @@ function make_video_map_2(obs_var, tremors, fault, options)
         maximum(norm_sumR2plot[ind_notnan_sumR2plot])]
         )
     timestamps = range(1, n_samples2plot, step=1)
-
-    # println(max_obs_timelats2plot)
-    # println(maximum(max_obs_timelats2plot[~isnan(max_obs_timelats2plot)]))
-    
-
-    # dates = Date.(DateFormats.yeardecimal.(obs_timeline))  
-    # dates_tremors = Date.(DateFormats.yeardecimal.(tremors_timeline))
-    # dates_tremors_R = Date.(DateFormats.yeardecimal.(tremors_timeline_R))  
 
     # Start from first index of the timeline
     ind_t_now = Observable(1)
@@ -238,7 +225,7 @@ function make_video_map_2(obs_var, tremors, fault, options)
     # Coastline
     # ne_10m_coastline = GeoMakie.coastlines(10)
     # save_object("ne_10m_coastline.jld2", ne_10m_coastline)
-    coastline_file = dirs["dir_coastlines"] * "ne_10m_coastline.jld2"
+    coastline_file = dir_coastlines * "ne_10m_coastline.jld2"
     ne_10m_coastline = load_object(coastline_file)
     cl_obj = GeoMakie.lines!(axa, ne_10m_coastline, color=:black)
     translate!(cl_obj, 0, 0, 200)
@@ -369,7 +356,7 @@ end
 
 
 
-function make_video_map(obs_var, tremors, fault, options)
+function make_video_map_old(obs_var, tremors, fault, options)
 
     limits        = options["limits"]
     figsize       = options["figsize"]

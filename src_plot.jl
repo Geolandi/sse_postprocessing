@@ -3,6 +3,7 @@ using GeometryBasics
 using DSP
 using GMT
 using Dates
+using StatsBase
 include("src_selections.jl")
 
 function plot_intro_map_gmt(X, fault, options)
@@ -290,8 +291,12 @@ function plot_ts_gmt(X, options)
                 markersize=0.02
                 )
     subplot()
+    
+    if isfile("./gmt.history")
+        rm("./gmt.history")
+    end
 
-    return fig
+    return nothing
 end
 
 
@@ -427,24 +432,22 @@ function plot_comp_gmt(decomp, options)
         subplot()
         ProgressMeter.next!(progress)
     end
+
+    if isfile("./gmt.history")
+        rm("./gmt.history")
+    end
+
     return nothing
 end
 
-function plot_select_comps_and_smoothing(f, psds, misfit_comps, options)
+function plot_select_comps_and_smoothing(f, cs, misfit_comps, options)
 
-    options_freq_analysis = options["frequency_analysis"]
-    f_skip      = options_freq_analysis["f_skip"]
-    sigmaf_skip = options_freq_analysis["sigmaf_skip"]
-    f_threshold = options_freq_analysis["f_threshold"]
-    cs_psd1     = options_freq_analysis["cs_psd1"]
-    cs_psd2     = options_freq_analysis["cs_psd2"]
-
-    options_PSD = options_freq_analysis["PSD"]
-    fs       = options_PSD["fs"]
-    n_sample = options_PSD["n_sample"]
-    f_last   = options_PSD["f_last"]
-    
     sigmas = options["sigma"]
+    ind_comps = options["ind_comps"]
+    ind_comps_complex = options["ind_comps_complex"]
+    ind_comps_complex_removed = options["ind_comps_complex_removed"]
+    ind_comps_common = options["ind_comps_common"]
+    ind_comps_common_removed = options["ind_comps_common_removed"]
     
     titlea = options["titlea"]
     titleb = options["titleb"]
@@ -452,59 +455,13 @@ function plot_select_comps_and_smoothing(f, psds, misfit_comps, options)
     dir_output = options["dir_output"]
     output = options["output"]
 
-
-
-    n_comp = size(psds)[2]
+    n_comp = size(cs)[1]
     n_comps_inverted = size(misfit_comps)[2]
     x_min_axb = minimum(sigmas)
     x_max_axb = maximum(sigmas)
     y_min_axb = minimum(misfit_comps)
     y_max_axb = maximum(misfit_comps)
 
-
-    f_low  = f_skip - sigmaf_skip
-    f_high = f_skip + sigmaf_skip
-    ind_f2keep = fill(true,size(f))
-    for i=1:size(f_low)[2]
-        ind_f2rm_tmp = f .>= f_low[i] .&& f .<= f_high[i]
-        ind_f2keep[ind_f2rm_tmp] .= false
-    end
-    f2plot = f[ind_f2keep]
-    n_freq_f2keep = sum(ind_f2keep)
-    cs = zeros(n_comp,n_freq_f2keep)
-    for i=1:n_comp
-        psd_norm = psds[ind_f2keep,i] ./ sum(psds[:,i])
-        cs[i,:] = cumsum(psd_norm)
-    end
-
-    f_thr = minimum(abs.(f[ind_f2keep] .- f_threshold))
-    ind_f_thr = argmin(abs.(f[ind_f2keep] .- f_threshold))
-
-    ind_comps_cs = findall(cs[:,ind_f_thr] .>= cs_psd1 .&&
-                           cs[:,ind_f_thr] .<= cs_psd2)
-
-    ind_comps2rm   = []
-    ind_comps2keep = []
-    n_ind_comps_cs = length(ind_comps_cs)
-    n_f_skip = length(f_skip)
-    for i=1:n_ind_comps_cs
-        j = ind_comps_cs[i]
-        psd_max = maximum(psds[:,j])
-        ind_f_max = argmax(psds[:,j])
-        f_max = f[ind_f_max]
-        for k=1:n_f_skip
-            if (f_max .>= f_skip[k] .- sigmaf_skip[k]) .&& 
-                    (f_max .<= f_skip[k] .+ sigmaf_skip[k])
-                append!(ind_comps2rm, i)
-            else
-                append!(ind_comps2keep, i)
-            end
-        end
-    end
-
-    ind_comps = copy(ind_comps_cs)
-    deleteat!(ind_comps, ind_comps2rm)
-    
     x_min_axa = minimum(f)
     x_max_axa = maximum(f)
     y_min_axa = minimum(cs)
@@ -526,23 +483,28 @@ function plot_select_comps_and_smoothing(f, psds, misfit_comps, options)
                 )
         
         for i=1:n_comp
-            GMT.plot!(f2plot, cs[i,:], lw=0.5, lc="0/84/147")
+            GMT.plot!(f, cs[i,:], lw=0.5, lc=:black)
         end
         n_ind_comps = length(ind_comps)
-        for i=1:n_ind_comps
-            GMT.plot!(f2plot, cs[ind_comps[i],:], pen="2p,193/43/43")
+        # for i=1:n_ind_comps
+        #     GMT.plot!(f, cs[ind_comps[i],:], pen="2p,193/43/43")
+        # end
+        n_ind_comps_complex = length(ind_comps_complex)
+        for i=1:n_ind_comps_complex
+            GMT.plot!(f, cs[ind_comps_complex[i],:],
+                    pen="2p,193/43/43")
         end
-        n_ind_comps2rm = length(ind_comps2rm)
-        for i=1:n_ind_comps2rm
-            GMT.plot!(f2plot, cs[ind_comps_cs[ind_comps2rm[i]],:],
+        n_ind_comps_complex_removed = length(ind_comps_complex_removed)
+        for i=1:n_ind_comps_complex_removed
+            GMT.plot!(f, cs[ind_comps_complex_removed[i],:],
                     pen="2p,255/165/0,dashed")
         end
-        # plot(f(1:ind_f_thr), cs(:,1:ind_f_thr), '-k');
-        # plot(f(1:ind_f_thr), cs(ind_comps,1:ind_f_thr), '-r', ...
-        #         'LineWidth', LineWidth);
-        # plot(f(1:ind_f_thr), cs(ind_comps_cs(ind_comps2rm),1:ind_f_thr), '--b', ...
-        #         'LineWidth', LineWidth);
-        
+        n_ind_comps_common = length(ind_comps_common)
+        for i=1:n_ind_comps_common
+            GMT.plot!(f, cs[ind_comps_common[i],:],
+                    pen="2p,0/84/147,dashed")
+        end
+
         GMT.basemap(region=(x_min_axb, x_max_axb, 0.9*y_min_axb, y_max_axb*1.1),
                 proj=:logxy,
                 axes=:WSne,
@@ -574,17 +536,23 @@ function plot_select_comps_and_smoothing(f, psds, misfit_comps, options)
             end
         end
     subplot()
-    # GMT.basemap(region=(1,10000,1e20,1e25), figsize=(25,15), proj=:logxy, frame=(axes=:WS,),
-    #     xaxis=(annot=2, label=:Wavelength),
-    #     yaxis=(annot=1, ticks=3, label=:Power, scale=:pow), show=1)
-
     
-    return fig
+    if isfile("./gmt.history")
+        rm("./gmt.history")
+    end
+
+    return nothing
 end
 
 function plot_psd_gmt(f, psds, options)
 
     n_comps = size(psds)[2]
+
+    ind_comps = options["ind_comps"]
+    ind_comps_complex = options["ind_comps_complex"]
+    ind_comps_complex_removed = options["ind_comps_complex_removed"]
+    ind_comps_common = options["ind_comps_common"]
+    ind_comps_common_removed = options["ind_comps_common_removed"]
 
     color_list = options["color_list"]
     label = options["label"]
@@ -607,6 +575,7 @@ function plot_psd_gmt(f, psds, options)
     i = 0
     k = 0
     x_legend = f[end]*0.9
+    dx = -0.1*f[end]
     subplot(grid=(n_subplots_x,n_subplots_y), dims=(size=(15,15),
         frac=(ntuple(x -> 1, n_subplots_y), ntuple(x -> 1, n_subplots_x)) ),
             title=title, row_axes=(left=false), col_axes=(bott=false),
@@ -622,7 +591,7 @@ function plot_psd_gmt(f, psds, options)
                 end
                 
                 y_max = maximum(psds[:,1+k:k+n_per_subplot_i])
-                y_legend = y_max*0.9
+                y_legend = y_max*0.95
                 dy = -0.15*y_max
                 if ix == n_subplots_x && iy == n_subplots_y
                     ann = Integer(floor((1.1*y_max - y_min) / 3))
@@ -671,11 +640,48 @@ function plot_psd_gmt(f, psds, options)
                     GMT.text!(label*string(k), x=x_legend, y=y_legend+(j-1)*dy,
                         par=((FONT_ANNOT_PRIMARY="12p,Helvetica,"*color_list[j]),
                         (FONT_LABEL="12p,Helvetica,"*color_list[j]),),
-                        justify=:CB)
+                        justify=:CM)
+                    # if !isempty(intersect(k, ind_comps))
+                    #     GMT.scatter!(x_legend+dx, y_legend+(j-1)*dy,
+                    #         fill="193/43/43",
+                    #         markersize=0.3,
+                    #         marker=:star,
+                    #         markeredgecolor=:black,
+                    #         )
+                    # end
+                    if !isempty(intersect(k, ind_comps_complex))
+                        GMT.scatter!(x_legend+dx, y_legend+(j-1)*dy,
+                            fill="193/43/43",
+                            markersize=0.3,
+                            marker=:star,
+                            markeredgecolor=:black,
+                            )
+                    end
+                    if !isempty(intersect(k, ind_comps_complex_removed))
+                        GMT.scatter!(x_legend+dx, y_legend+(j-1)*dy,
+                            fill="255/165/0",
+                            markersize=0.3,
+                            marker=:star,
+                            markeredgecolor=:black,
+                            )
+                    end
+                    if !isempty(intersect(k, ind_comps_common))
+                        GMT.scatter!(x_legend+1.5*dx, y_legend+(j-1)*dy,
+                            fill="0/84/147",
+                            markersize=0.3,
+                            marker=:star,
+                            markeredgecolor=:black,
+                            )
+                    end
                 end
             end
         end
     subplot()
+
+    if isfile("./gmt.history")
+        rm("./gmt.history")
+    end
+
     return nothing
 end
 
@@ -1124,6 +1130,7 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
         timeline, max_obs_norm,
         color=:red,
         )
+
     # min_obs_norm = (abs.(min_obs) ./ maximum(abs.(min_obs)))
     # min_obs_line = Makie.lines!(
     #     axa,
@@ -1191,7 +1198,7 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     rowsize!(gab, 1, Auto(0.3))
     
     save(dir_output*output*"_ts_"*title*".png", fig)
-    return fig
+    return fig, r
 end
 
 function get_color(obs, color_thresh)
@@ -1224,4 +1231,447 @@ function get_color_lontime_map(color, fault, n_samples, n_lats_edges)
     inds = color_lats_max .< abs.(color_lats_min);
     color_lats_minmax[inds] = color_lats_min[inds];
     return color_lats_minmax, lats
+end
+
+function plot_map_lattimets(obs_var, tremors, fault, options)
+
+    figsize = options["figsize"]
+    title = options["title"]
+    n_lats_edges  = options["n_lats_edges"]
+    t0            = options["t0"] 
+    t1            = options["t1"] 
+    color_thresh  = options["color_thresh_perc"]
+    Δt = options["Δt"]
+    t_max_crosscorr = options["t_max_crosscorr"]
+    dir_output = options["dir_output"]
+    output = options["output"]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+
+    t0_decyear, t0_date = get_time_decyear_and_date(t0)
+    t1_decyear, t1_date = get_time_decyear_and_date(t1)
+
+    n_patches = size(fault["llh"])[1]
+
+    ##############################
+    ### FIND VARIABLES TO PLOT ###
+    ##############################
+    # Observable from GNSS solution (e.g., slip potency rate)
+    obs_ind_t0 = findfirst(obs_var["timeline"][1,:] .- t0_decyear .>= 0)
+    obs_ind_t1 = findlast(t1_decyear .- obs_var["timeline"][1,:] .>= 0)
+    obs_timeline = obs_var["timeline"][1,obs_ind_t0:obs_ind_t1]
+    obs_dates = Date.(DateFormats.yeardecimal.(obs_timeline))
+    obs = obs_var["obs"][:,obs_ind_t0:obs_ind_t1]
+    n_samples_obs = length(obs_timeline)
+    # Find color and maxmin values along latitude for the lat-time map
+    obs_on_fault, colorrange, color_exp = get_color(obs, color_thresh)
+    obs_timelats, lats = get_color_lontime_map(obs_on_fault,
+                            fault, n_samples_obs, n_lats_edges)
+    max_obs_timelats = maximum(obs_timelats, dims=1)[1,:]
+    n_lats = n_lats_edges - 1;
+    # Tremors on original timeline (non-uniform)
+    tremors_ind_t0 = findfirst(tremors["timeline"] .- t0_decyear .>= 0)
+    tremors_ind_t1 = findlast(t1_decyear .- tremors["timeline"] .>= 0)
+    tremors_timeline = tremors["timeline"][tremors_ind_t0:tremors_ind_t1]
+    tremors_dates = Date.(DateFormats.yeardecimal.(tremors_timeline))
+    lat_tremors = tremors["lat"][tremors_ind_t0:tremors_ind_t1]
+    # Lon-lat of all tremors in considered time range
+    tremors_ll = Point2f.(tremors["lon"][tremors_ind_t0:tremors_ind_t1],
+                          tremors["lat"][tremors_ind_t0:tremors_ind_t1])
+    # Tremors on daily timeline
+    tremors_R_ind_t0 = findfirst(tremors["timeline_R"] .- t0_decyear .>= 0)
+    tremors_R_ind_t1 = findlast(t1_decyear .- tremors["timeline_R"] .>= 0)
+    tremors_timeline_R =tremors["timeline_R"][tremors_R_ind_t0:tremors_R_ind_t1]
+    tremors_dates_R = Date.(DateFormats.yeardecimal.(tremors_timeline_R))
+    sumR = sum(tremors["R"], dims=1)[1,tremors_R_ind_t0:tremors_R_ind_t1]
+    
+    ##################################################
+    ### CREATE TIMELINE OF TIMES AND DATES TO PLOT ###
+    ##################################################
+    timeline2plot, dates2plot = create_timeline(t0_date, t1_date)
+    n_samples2plot = length(dates2plot)
+
+    # Initialize to NaN variables to plot
+    obs_on_fault2plot = zeros(n_patches, n_samples2plot) .* NaN
+    obs_timelats2plot = zeros(n_lats, n_samples2plot) .* NaN
+    max_obs_timelats2plot = zeros(n_samples2plot) .* NaN
+    sumR2plot = zeros(n_samples2plot) .* NaN
+    lat_tremors2plot = zeros(n_samples2plot) .* NaN
+
+    # Find indices of dates shared with the dates to plot
+    ind_obs = findall(x -> x in dates2plot, obs_dates)
+    ind_tremors = findall(x -> x in dates2plot, tremors_dates)
+    ind_tremors_R = findall(x -> x in dates2plot, tremors_dates_R)
+
+    # Fill with values the variables to plot
+    obs_on_fault2plot[:,ind_obs] = obs_on_fault[:,:]
+    obs_timelats2plot[:,ind_obs] = obs_timelats[:,:]
+    max_obs_timelats2plot[ind_obs] = max_obs_timelats[:]
+    sumR2plot[ind_tremors_R] = sumR[:]
+    
+    ind_notnan_max_obs_timelats2plot = findall(x -> !isnan(x),
+                                            max_obs_timelats2plot)
+    norm_max_obs_timelats2plot = max_obs_timelats2plot ./ 
+                maximum(max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot])
+    ind_notnan_sumR2plot = findall(x -> !isnan(x), sumR2plot)
+    norm_sumR2plot = sumR2plot ./ maximum(sumR2plot[ind_notnan_sumR2plot])
+    
+    min_ylims_axa = minimum([0,
+        minimum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot]),
+        minimum(norm_sumR2plot[ind_notnan_sumR2plot])]
+        )
+    max_ylims_axa = maximum([1,
+        maximum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot]),
+        maximum(norm_sumR2plot[ind_notnan_sumR2plot])]
+        )
+    
+    # Find ticks for x ans y axes
+    xticks = collect(timeline2plot[1]-1:2:timeline2plot[end]+1)
+    xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
+    
+    lat_min = minimum(minimum(fault["lat"]));
+    lat_max = maximum(maximum(fault["lat"]));
+    yticks_axb = collect(lat_min-1:2:lat_max+1)
+    yticks_axb = [round(Int, ytick) for ytick in yticks_axb] # Ensure ticks are integers
+
+    
+    ind_nan_norm_max_obs_timelats2plot = findall(!isnan, 
+                                            norm_max_obs_timelats2plot)
+    ind_nan_norm_sumR2plot = findall(!isnan, norm_sumR2plot)
+    inds = intersect(ind_nan_norm_max_obs_timelats2plot,ind_nan_norm_sumR2plot)
+    x = norm_max_obs_timelats2plot[inds]
+    y = norm_sumR2plot[inds]
+
+    ## Explanation of crosscor
+    ## (see https://discourse.julialang.org/t/cross-correlation-with-statsbase-crosscor-answer-does-not-make-sense/44374)
+    # Julia 1.5
+    # using LinearAlgebra
+    # numone, numtwo = [2,3,4,5], [1,2,3,4]
+    # x, y = numone[1:end-1], numtwo[2:end]
+    # ra = dot(x,y)/sqrt(dot(numone,numone)*dot(numtwo,numtwo)) # what crosscor does
+    # rb = dot(x,y)/sqrt(dot(x,x)*dot(y,y)) # what you expect
+    # [ra rb]
+
+    inds_crosscorr = range(-t_max_crosscorr,t_max_crosscorr,step=1)
+    r = crosscor(x,y,inds_crosscorr; demean=false)
+    r_max = maximum(r)
+    ind_r_max = argmax(r)
+    n_days_max_crosscorr = inds_crosscorr[ind_r_max]
+
+    ##############
+    ### FIGURE ###
+    ##############
+    fig = Figure(size=figsize)
+    gt = fig[0, 1] = GridLayout()
+    gab = fig[1:2, 1] = GridLayout()
+    ga = gab[1, 1] = GridLayout()
+    gb = gab[2, 1] = GridLayout()
+    
+    #############
+    ### TITLE ###
+    #############
+    titlelayout = GridLayout(gt[1, 1],
+                             halign = :center,
+                             tellwidth = false
+                             )
+    Label(titlelayout[1, 1],
+          title,
+          halign = :center,
+          fontsize=36,
+          font = "Times New Roman"
+          )
+
+    ###################
+    ### TIME SERIES ###
+    ###################
+    axa = Axis(ga[1,1],
+               xlabel=L"Time ($yr$)",
+               ylabel=L"Norm. $R$ and $\dot{p}$",
+               xlabelsize=24,
+               ylabelsize=24,
+               xticks=xticks,
+               xticklabelsize=24,
+               yticklabelsize=24,
+               xaxisposition=:top,
+               )
+    xlims!(axa, timeline2plot[1], timeline2plot[end] + Δt)
+    ylims!(axa, min_ylims_axa, max_ylims_axa)
+
+    # tremors_ts_scatter = Makie.scatter!(
+    #     axa,
+    #     timeline2plot, norm_sumR2plot,
+    #     color=:black,
+    #     markersize=5,
+    #     alpha=1,
+    #     )
+    tremors_ts_lines = Makie.lines!(
+        axa,
+        timeline2plot, norm_sumR2plot,
+        color=:black,
+        )
+
+    # obs_ts_lines = Makie.scatter!(
+    #     axa,
+    #     timeline2plot, norm_max_obs_timelats2plot,
+    #     color=:red,
+    #     markersize=5,
+    #     alpha=1,
+    #     )
+    obs_ts_lines = Makie.lines!(
+        axa,
+        timeline2plot, norm_max_obs_timelats2plot,
+        color=:red,
+        )
+    
+    dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.02
+    dy = (max_ylims_axa - min_ylims_axa)*0.15
+    Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-dy;
+            text="corr = "*string(round(r_max, sigdigits=2)), fontsize=16)
+    if abs(n_days_max_crosscorr) == 1
+        str_n_days_max_crosscorr = "Δt = "*string(n_days_max_crosscorr)*" day"
+    else
+        str_n_days_max_crosscorr = "Δt = "*string(n_days_max_crosscorr)*" days"
+    end
+    Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-2*dy;
+            text=str_n_days_max_crosscorr, fontsize=16)
+    
+
+    #########################
+    ### MAP LATITUDE-TIME ###
+    #########################
+    axb = Axis(gb[1, 1],
+               ylabel=L"Latitude ($\degree$)",
+               ylabelsize=24,
+               yticklabelsize=24,
+               yticks=yticks_axb
+               )
+    hidexdecorations!(axb, grid = false)
+
+    hm = heatmap!(axb,
+                  timeline2plot,
+                  lats,
+                  obs_timelats2plot',
+                  colormap=:bwr,
+                  colorrange=colorrange
+                  )
+    
+    tr_map = Makie.scatter!(
+        axb,
+        tremors_timeline,
+        lat_tremors,
+        color=:black,
+        markersize=1,
+        alpha=1.0,
+        )
+    translate!(tr_map, 0, 0, 100) # move above surface plot
+    
+    ################
+    ### COLORBAR ###
+    ################
+    label_text = "Slip Potency Rate"
+    max_abs_value = maximum(abs.(colorrange))
+    tick_step = ceil(Int, max_abs_value / 3)
+    ticks = collect(-3*tick_step:tick_step:3*tick_step)
+    ticks = [round(Int, tick) for tick in ticks]  # Ensure ticks are integers
+    Colorbar(fig[3, 1],
+             limits=colorrange,
+             colormap=:bwr,
+             flipaxis=false,
+             label=L"%$(label_text) $(m^3/yr)$ $\times 10^{%$(color_exp)}$",
+             vertical=false,
+             labelsize=24,
+             ticks=ticks,
+             ticklabelsize=24
+             )
+    
+    #################################
+    ### GENERAL LAYOUT ADJUSTMENT ###
+    #################################
+    rowgap!(gab, 0)
+    rowsize!(gab, 1, Auto(0.3))
+    
+    save(dir_output*output*"_ts_"*title*".png", fig)
+    
+    return r
+end
+
+
+function plot_map_lattimets_notremors(obs_var, fault, options)
+
+    figsize = options["figsize"]
+    title = options["title"]
+    n_lats_edges  = options["n_lats_edges"]
+    t0            = options["t0"] 
+    t1            = options["t1"] 
+    color_thresh  = options["color_thresh_perc"]
+    Δt = options["Δt"]
+    t_max_crosscorr = options["t_max_crosscorr"]
+    dir_output = options["dir_output"]
+    output = options["output"]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+
+    t0_decyear, t0_date = get_time_decyear_and_date(t0)
+    t1_decyear, t1_date = get_time_decyear_and_date(t1)
+
+    n_patches = size(fault["llh"])[1]
+    
+    ##############################
+    ### FIND VARIABLES TO PLOT ###
+    ##############################
+    # Observable from GNSS solution (e.g., slip potency rate)
+    obs_ind_t0 = findfirst(obs_var["timeline"][1,:] .- t0_decyear .>= 0)
+    obs_ind_t1 = findlast(t1_decyear .- obs_var["timeline"][1,:] .>= 0)
+    obs_timeline = obs_var["timeline"][1,obs_ind_t0:obs_ind_t1]
+    obs_dates = Date.(DateFormats.yeardecimal.(obs_timeline))
+    obs = obs_var["obs"][:,obs_ind_t0:obs_ind_t1]
+    n_samples_obs = length(obs_timeline)
+    # Find color and maxmin values along latitude for the lat-time map
+    obs_on_fault, colorrange, color_exp = get_color(obs, color_thresh)
+    obs_timelats, lats = get_color_lontime_map(obs_on_fault,
+                            fault, n_samples_obs, n_lats_edges)
+    max_obs_timelats = maximum(obs_timelats, dims=1)[1,:]
+    n_lats = n_lats_edges - 1;
+    
+    ##################################################
+    ### CREATE TIMELINE OF TIMES AND DATES TO PLOT ###
+    ##################################################
+    timeline2plot, dates2plot = create_timeline(t0_date, t1_date)
+    n_samples2plot = length(dates2plot)
+
+    # Initialize to NaN variables to plot
+    obs_on_fault2plot = zeros(n_patches, n_samples2plot) .* NaN
+    obs_timelats2plot = zeros(n_lats, n_samples2plot) .* NaN
+    max_obs_timelats2plot = zeros(n_samples2plot) .* NaN
+    
+    # Find indices of dates shared with the dates to plot
+    ind_obs = findall(x -> x in dates2plot, obs_dates)
+    
+    # Fill with values the variables to plot
+    obs_on_fault2plot[:,ind_obs] = obs_on_fault[:,:]
+    obs_timelats2plot[:,ind_obs] = obs_timelats[:,:]
+    max_obs_timelats2plot[ind_obs] = max_obs_timelats[:]
+    
+    ind_notnan_max_obs_timelats2plot = findall(x -> !isnan(x),
+                                            max_obs_timelats2plot)
+    norm_max_obs_timelats2plot = max_obs_timelats2plot ./ 
+                maximum(max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot])
+    
+    min_ylims_axa = minimum([0,
+        minimum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot])])
+    max_ylims_axa = maximum([1,
+        maximum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot])])
+    
+    # Find ticks for x ans y axes
+    xticks = collect(timeline2plot[1]-1:2:timeline2plot[end]+1)
+    xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
+    
+    lat_min = minimum(minimum(fault["lat"]));
+    lat_max = maximum(maximum(fault["lat"]));
+    yticks_axb = collect(lat_min-1:2:lat_max+1)
+    yticks_axb = [round(Int, ytick) for ytick in yticks_axb] # Ensure ticks are integers
+
+    ##############
+    ### FIGURE ###
+    ##############
+    fig = Figure(size=figsize)
+    gt = fig[0, 1] = GridLayout()
+    gab = fig[1:2, 1] = GridLayout()
+    ga = gab[1, 1] = GridLayout()
+    gb = gab[2, 1] = GridLayout()
+    
+    #############
+    ### TITLE ###
+    #############
+    titlelayout = GridLayout(gt[1, 1],
+                             halign = :center,
+                             tellwidth = false
+                             )
+    Label(titlelayout[1, 1],
+          title,
+          halign = :center,
+          fontsize=36,
+          font = "Times New Roman"
+          )
+
+    ###################
+    ### TIME SERIES ###
+    ###################
+    axa = Axis(ga[1,1],
+               xlabel=L"Time ($yr$)",
+               ylabel=L"Norm. $R$ and $\dot{p}$",
+               xlabelsize=24,
+               ylabelsize=24,
+               xticks=xticks,
+               xticklabelsize=24,
+               yticklabelsize=24,
+               xaxisposition=:top,
+               )
+    xlims!(axa, timeline2plot[1], timeline2plot[end] + Δt)
+    ylims!(axa, min_ylims_axa, max_ylims_axa)
+
+    # obs_ts_scatter = Makie.scatter!(
+    #     axa,
+    #     timeline2plot, norm_max_obs_timelats2plot,
+    #     color=:red,
+    #     markersize=5,
+    #     alpha=1,
+    #     )
+    obs_ts = Makie.lines!(
+        axa,
+        timeline2plot, norm_max_obs_timelats2plot,
+        color=:red,
+        )
+    
+    #########################
+    ### MAP LATITUDE-TIME ###
+    #########################
+    axb = Axis(gb[1, 1],
+               ylabel=L"Latitude ($\degree$)",
+               ylabelsize=24,
+               yticklabelsize=24,
+               yticks=yticks_axb
+               )
+    hidexdecorations!(axb, grid = false)
+
+    hm = heatmap!(axb,
+                  timeline2plot,
+                  lats,
+                  obs_timelats2plot',
+                  colormap=:bwr,
+                  colorrange=colorrange
+                  )
+    
+    ################
+    ### COLORBAR ###
+    ################
+    label_text = "Slip Potency Rate"
+    max_abs_value = maximum(abs.(colorrange))
+    tick_step = ceil(Int, max_abs_value / 3)
+    ticks = collect(-3*tick_step:tick_step:3*tick_step)
+    ticks = [round(Int, tick) for tick in ticks]  # Ensure ticks are integers
+    Colorbar(fig[3, 1],
+             limits=colorrange,
+             colormap=:bwr,
+             flipaxis=false,
+             label=L"%$(label_text) $(m^3/yr)$ $\times 10^{%$(color_exp)}$",
+             vertical=false,
+             labelsize=24,
+             ticks=ticks,
+             ticklabelsize=24
+             )
+    
+    #################################
+    ### GENERAL LAYOUT ADJUSTMENT ###
+    #################################
+    rowgap!(gab, 0)
+    rowsize!(gab, 1, Auto(0.3))
+    
+    save(dir_output*output*"_ts_notremors_"*title*".png", fig)
+    
+    return nothing
 end
