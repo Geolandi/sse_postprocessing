@@ -11,19 +11,36 @@ include("src_time.jl")
 # Add ffmpeg directory to PATH to be able to plot with GMT
 ENV["PATH"] = ENV["PATH"] * ":/opt/homebrew/bin"
 
-solutions_dates = [#"2024-08-20/",
-                   #"2024-08-21/",
-                   #"2024-08-22/",
-                   #"2024-08-23/",
-                   #"2024-08-24/",
-                   #"2024-08-26/",
-                   #"2024-08-28/",
-                   #"2024-08-29/",
+solutions_dates = ["2024-08-01/",
+                   "2024-08-02/",
+                   "2024-08-03/",
+                   "2024-08-04/",
+                   "2024-08-06/",
+                   "2024-08-07/",
+                   "2024-08-08/",
+                   "2024-08-09/",
+                   "2024-08-10/",
+                   "2024-08-11/",
+                   "2024-08-12/",
+                   "2024-08-13/",
+                   "2024-08-14/",
+                   "2024-08-16/",
+                   "2024-08-17/",
+                   "2024-08-18/",
+                   "2024-08-19/",
+                   "2024-08-20/",
+                   "2024-08-21/",
+                   "2024-08-22/",
+                   "2024-08-23/",
+                   "2024-08-24/",
+                   "2024-08-26/",
+                   "2024-08-28/",
+                   "2024-08-29/",
                    "2024-08-30/",
                    "2024-08-31/",
                    ]
-solution_date = "2024-08-24/"
-# for solution_date in solutions_dates
+# solution_date = "2024-08-24/"
+for solution_date in solutions_dates
 
     dirs = Dict()
     dirs["dir_data"] = "/Users/ag2347/Work/Data/"
@@ -117,7 +134,7 @@ solution_date = "2024-08-24/"
     ####################################
     ### FLAGS FOR MOVIES AND FIGURES ###
     ####################################
-    flag_plot_video_map        = false
+    flag_plot_video_map        = true
     flag_plot_fig_intro        = true
     flag_plot_fig_ts           = true
     flag_plot_fig_ICs          = true
@@ -203,7 +220,7 @@ solution_date = "2024-08-24/"
         fig = plot_map_lattimets_notremors(slip_potency_rate, fault,
             options["plot"]["figures"]["map_ts"])
     end
-# end
+end
 
 
 
