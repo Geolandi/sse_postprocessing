@@ -107,26 +107,41 @@ function select_complex_psds(f, psds, options)
 end
 
 function select_common_modes(decomp, options)
-    common_mode_perc = options["common_mode_perc"]
+    #common_mode_perc = options["common_mode_perc"]
+    common_mode_stddist = options["common_mode_stddist"]
+    
     U = decomp["U"]
     n_ts, n_comp = size(U)
     n_stn = n_ts/3
     ind_comps_common   = []
-    for i=1:n_comp
-        flag_u_common = 0
-        for j=1:3
-            u = U[j:3:end,i]
-            u_plus = sum(u .> 0)
-            u_minus = sum(u .< 0)
-            u_common = maximum([u_plus, u_minus]) ./ n_stn
-            if u_common > common_mode_perc
-                flag_u_common = flag_u_common + 1
-            end
-        end
-        if flag_u_common > 0
-            append!(ind_comps_common, i)
-        end
+    me = zeros(3, n_comp)
+    st = zeros(3, n_comp)
+    for j=1:3
+        me[j,:] = mean(U[j:3:end,:], dims=1)
+        st[j,:] = std(U[j:3:end,:], dims=1)
     end
+    ind_idx_common = sum((abs.(me) .- common_mode_stddist*st).>0, dims=1)[1,:]
+    ind_comps_common = findall(x -> x == 1, ind_idx_common)
+    # for i=1:n_comp
+    #     flag_u_common = 0
+    #     for j=1:3
+    #         u = U[j:3:end,i]
+
+    #         me[j,i] = mean(u)
+    #         st[j,i] = std(u)
+    #         #sk[j,i] = skewness(ICA["U"][j:3:end,i])
+            
+    #         # u_plus = sum(u .> 0)
+    #         # u_minus = sum(u .< 0)
+    #         # u_common = maximum([u_plus, u_minus]) ./ n_stn
+    #         # if u_common > common_mode_perc
+    #         #     flag_u_common = flag_u_common + 1
+    #         # end
+    #     end
+    #     if flag_u_common > 0
+    #         append!(ind_comps_common, i)
+    #     end
+    # end
     return ind_comps_common
 end
 

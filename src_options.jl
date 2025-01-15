@@ -3,7 +3,21 @@ using Dates
 #########################
 ### SELECT COMPONENTS ###
 #########################
-# PSD
+function read_options_select_comps(options)
+    # options["inversion"]["select_comps"]["frequency_analysis"]["f_threshold"] =
+    #                                                             3.5
+    # options["inversion"]["select_comps"]["frequency_analysis"]["f_skip"] = 
+    #                                                             [1.0 2.0 3.0]
+    # options["inversion"]["select_comps"]["frequency_analysis"]["sigmaf_skip"] =
+    #                                                         [0.05 0.05 0.05]
+    # options["inversion"]["select_comps"]["frequency_analysis"]["cs_psd1"] = 0.5
+    
+    return options
+end
+
+###########
+### PSD ###
+###########
 function read_options_psd(options)
     options["PSD"] = Dict()
     # sample rate of the signal
@@ -15,9 +29,24 @@ function read_options_psd(options)
     return options
 end
 
-# COMMON MODES
+####################
+### COMMON MODES ###
+####################
 function read_options_common_modes(options)
-    options["inversion"]["select_comps"]["common_mode_perc"] = 1.01
+    # options["inversion"]["select_comps"]["common_mode_perc"] = 0.95
+    options["inversion"]["select_comps"]["common_mode_stddist"] = 3
+    return options
+end
+
+#################
+### INVERSION ###
+#################
+function read_options_inversion(options)
+    # rake_pos determines the rake for which we need to consider the slip as
+    # positive; opposite directions will be negative;
+    # 90 = thrust; -90 = normal
+    options["inversion"]["rake_pos"] = 90;
+
     return options
 end
 
@@ -53,6 +82,7 @@ function read_options_sliprate(options)
     options["slip_rate"] = Dict()
     options["slip_rate"]["rake"] = 90;
     options["slip_rate"]["windowsize"] = 7;
+
     return options
 end
 

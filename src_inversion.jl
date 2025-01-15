@@ -110,7 +110,7 @@ function create_model(m, Cm, decomp, fault, options, ind_comps)
     result = Dict()
     result["timeline"] = decomp["timeline"]
 
-    result["obs"],result["cov_obs"],result["var_obs"], result["obs_strike"],
+    result["obs"], result["cov_obs"], result["var_obs"], result["obs_strike"],
     result["obs_dip"], result["var_obs_strike"], result["var_obs_dip"] = 
         calc_slip_cov_slip_var_slip(m,Cm,
             decomp["S"][ind_comps,ind_comps],decomp["V"][:,ind_comps],

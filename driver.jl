@@ -39,9 +39,13 @@ solutions_dates = ["2024-08-01/",
                    "2024-08-30/",
                    "2024-08-31/",
                    ]
+solution_dates = ["2024-08-24/"]
 # solution_date = "2024-08-24/"
 for solution_date in solutions_dates
 
+    #######################
+    ### SET DIRECTORIES ###
+    #######################
     dirs = Dict()
     dirs["dir_data"] = "/Users/ag2347/Work/Data/"
     dirs["dir_results"] = "/Users/ag2347/Work/Results/"
@@ -49,9 +53,12 @@ for solution_date in solutions_dates
     dirs["dir_results2load"] = dirs["dir_results"] * "Slowquakes/real-time/" *
                             dirs["dir_case"] * "matfiles/" * solution_date
     dirs["dir_fault"]   = dirs["dir_data"] * "Faults/" * dirs["dir_case"]
-    dirs["dir_tremors"] = dirs["dir_data"] * "Tremors/" * dirs["dir_case"] * "PNSN/"
+    dirs["dir_tremors"] = dirs["dir_data"]*"Tremors/"*dirs["dir_case"]*"PNSN/"
     dirs["dir_coastlines"] = dirs["dir_data"] * "NaturalEarth/coastlines_jl/"
 
+    ######################
+    ### LOAD VARIABLES ###
+    ######################
     # load options
     options      = matread(dirs["dir_results2load"]*"options.mat")["options"]
     options["solution_date"] = solution_date
@@ -64,41 +71,90 @@ for solution_date in solutions_dates
     ICA["timeline"] = X["timeline"];
     ICA["decmode"]  = X["decmode"];
 
+    ##################################################
+    ### LOAD FAULT AND CALCULATE GREENS' FUNCTIONS ###
+    ##################################################
     # load fault
     fault = load_fault(dirs, options)
-
     # calculate Greens' functions
     G = create_greens_function(X, fault, options)
 
+    #########################
+    ### SELECT COMPONENTS ###
+    #########################
     # refine selection of components to use in SSEs reconstruction
-    options["inversion"]["select_comps"]["frequency_analysis"]["cs_psd1"] = 0.6
+    options = read_options_select_comps(options)
     comps_selected = select_comps(dirs, ICA, options)
     
-    # invert components
+    #########################
+    ### INVERT COMPONENTS ###
+    #########################
+    # invert selected components
     ind_comps = comps_selected["ind_comps"]
     misfit_comps = comps_selected["misfit_comps"]
     ind_sigma0_comps = comps_selected["ind_sigma0_comps"]
     m, Cm = invert_comps(ICA, ind_comps, fault, G, ind_sigma0_comps, options)
     println("Done")
 
-    # calculate co-variance matrix for slip potency components
+    ###############################
+    ### SLIP POTENCY COMPONENTS ###
+    ###############################
     n_ICs2invert = length(ind_comps)
     n_patches = length(fault["area"])
+    # slip potency components
     mp = repeat(fault["area"],2,1) .* m;
+    # co-variance matrix for slip potency components
     Cmp = [zeros(2*n_patches,2*n_patches) for i=1:n_ICs2invert]
     for i=1:n_ICs2invert
         Cmp[i] = repeat(fault["area"],2,1) .* Cm[i];
     end
 
+    #########################
+    ### SMOOTH COMPONENTS ###
+    #########################
     options = read_options_smoothing(options)
     V_smooth, timeline_smooth = create_xsmooth(
         ICA["V"]', ICA["timeline"], options["smooth"])
 
+    ####################################
+    ### CALCULATE RATE OF COMPONENTS ###
+    ####################################
     options = read_options_sliprate(options)
     V_dot, timeline_dot = calc_derivative(V_smooth', timeline_smooth,
         options["slip_rate"]["windowsize"], true)
 
+    ########################################
+    ### CREATE SLIP AND SLIP RATE MODELS ###
+    ########################################
+    # option to specify what rake direction is positive
+    options = read_options_inversion(options)
+    # set smooth ICA dictionary
+    ICA_smooth = copy(ICA);
+    ICA_smooth["V"] = V_smooth;
+    n_samples_smooth = length(timeline_smooth)
+    ICA_smooth["var_V"] = ICA["var_V"][end-n_samples_smooth+1:end,:];
+    ICA_smooth["timeline"] = timeline_smooth;
+    # create slip model with smooth components
+    slip_smooth = create_model(m, Cm, ICA_smooth, fault, options, ind_comps)
 
+    # set time derivative ICA dictionary
+    ICA_dot = copy(ICA);
+    ICA_dot["V"] = V_dot;
+    n_samples_dot = length(timeline_dot)
+    ICA_dot["var_V"] = ICA["var_V"][end-n_samples_dot+1:end,:];
+    ICA_dot["timeline"] = timeline_dot;
+    # create slip rate model with rate of smoothed components
+    slip_rate = create_model(m, Cm, ICA_dot, fault, options, ind_comps)
+
+    #########################
+    ### SLIP POTENCY RATE ###
+    #########################
+    # calculate slip potency rate
+    slip_potency_rate = create_model(mp,Cmp,ICA_dot,fault,options,ind_comps)
+
+    ###############
+    ### TREMORS ###
+    ###############
     # update and load tremors
     #update_tremors(dirs, "today");
     tremors = load_tremors(dirs, fault["origin"]);
@@ -107,28 +163,6 @@ for solution_date in solutions_dates
     timeline2plot, dates2plot = create_timeline(t0_date, t1_date)
     tremors = select_tremors(tremors, timeline2plot, fault)
     # tremors = select_tremors(tremors, timeline_dot, fault)
-
-    options["inversion"]["rake_pos"] = 90;
-
-    ICA_smooth = copy(ICA);
-    ICA_smooth["V"] = V_smooth;
-    n_samples_smooth = length(timeline_smooth)
-    ICA_smooth["var_V"] = ICA["var_V"][end-n_samples_smooth+1:end,:];
-    ICA_smooth["timeline"] = timeline_smooth;
-    slip_smooth = create_model(m, Cm, ICA_smooth, fault, options, ind_comps)
-
-    ICA_dot = copy(ICA);
-    ICA_dot["V"] = V_dot;
-    n_samples_dot = length(timeline_dot)
-    ICA_dot["var_V"] = ICA["var_V"][end-n_samples_dot+1:end,:];
-    ICA_dot["timeline"] = timeline_dot;
-    slip_rate = create_model(m, Cm, ICA_dot, fault, options, ind_comps)
-
-    #########################
-    ### SLIP POTENCY RATE ###
-    #########################
-    # calculate slip potency rate
-    slip_potency_rate = create_model(mp, Cmp, ICA_dot, fault, options, ind_comps)
 
 
     ####################################
@@ -159,17 +193,13 @@ for solution_date in solutions_dates
     ###############
     options["plot"]["figures"] = Dict()
 
-    ## ------------ ##
-    ## INTRO FIGURE ##
-    ## ------------ ##
+    # intro figure
     if flag_plot_fig_intro == true
         options = read_options_fig_intro(options, dirs)
         fig = plot_intro_map_gmt(X, fault, options["plot"]["figures"]["intro"])
     end
 
-    ## -------------------- ##
-    ## SELECTED TIME SERIES ##
-    ## -------------------- ##
+    # selecter time series
     if flag_plot_fig_ts == true
         options = read_options_fig_ts(options, dirs)
         options["plot"]["figures"]["ts"]["name"] = "ALBH"
@@ -180,26 +210,20 @@ for solution_date in solutions_dates
         fig = plot_ts_gmt(X, options["plot"]["figures"]["ts"])
     end
 
-    ## ---------------------- ##
-    ## INDEPENDENT COMPONENTS ##
-    ## ---------------------- ##
+    # independent components
     if flag_plot_fig_ICs == true
         options = read_options_fig_comps(options, dirs)
         fig = plot_comp_gmt(ICA, options["plot"]["figures"]["comps"])
     end
 
-    ## ---------------------- ##
-    ## POWER SPECTRAL DENSITY ##
-    ## ---------------------- ##
+    # Power Spectral Density
     if flag_plot_fig_PSD == true
         options = read_options_fig_psd(options, dirs, comps_selected)
         fig = plot_psd_gmt(comps_selected["PSD"]["f"],
                         comps_selected["PSD"]["psds"], options["plot"]["PSD"])
     end
 
-    ## ---------------------------------------- ##
-    ## SELECTION OF ICS AND SMOOTHING PARAMETER ##
-    ## ---------------------------------------- ##
+    # selection of ICs and smoothing parameters
     if flag_plot_fig_selectparams == true
         options = read_options_selection_params(options, dirs, comps_selected)
         fig = plot_select_comps_and_smoothing(
@@ -209,10 +233,8 @@ for solution_date in solutions_dates
     end
 
 
-    ## ---------------------------------- ##
-    ## SLIP POTENCY RATE LAT VS. TIME MAP ##
-    ## ---------------------------------- ##
-    # Map latitude-time and latitude-time with rate time series
+    # slip potency rate lat vs. time map
+    # map latitude-time and latitude-time with rate time series
     if flag_plot_fig_map_lat_time == true
         options = read_options_map_ts(options, dirs)
         r = plot_map_lattimets(slip_potency_rate, tremors, fault,
@@ -239,11 +261,27 @@ end
 # make_video_dtheta(options["plot"]["movie"])
 
 # using GLMakie
+# me = zeros(3,size(ICA["U"])[2])
+# st = zeros(3,size(ICA["U"])[2])
+# sk = zeros(3,size(ICA["U"])[2])
 # for i=1:size(ICA["U"])[2]
-#     fig_hist = Makie.Figure()
-#     ax_hist = Makie.Axis(fig_hist[1,1])
 #     for j=1:3
+#         fig_hist = Makie.Figure()
+#         ax_hist = Makie.Axis(fig_hist[1,1])
 #         Makie.hist!(ICA["U"][j:3:end,i])
+#         #save("./tmp/hist_U"*string(i)*"_"*string(j)*".png", fig_hist)
+#         me[j,i] = mean(ICA["U"][j:3:end,i])
+#         st[j,i] = std(ICA["U"][j:3:end,i])
+#         sk[j,i] = skewness(ICA["U"][j:3:end,i])
 #     end
-#     save("./tmp/hist_U"*string(i)*".png", fig_hist)
 # end
+
+# fig = Makie.Figure()
+# ax = Makie.Axis(fig[1,1])
+# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[1,:])
+# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[2,:])
+# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[3,:])
+# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[1,:])
+# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[2,:])
+# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[3,:])
+# display(fig)
