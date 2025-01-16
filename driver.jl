@@ -39,10 +39,11 @@ solutions_dates = ["2024-08-01/",
                    "2024-08-30/",
                    "2024-08-31/",
                    ]
-solution_dates = ["2024-08-24/"]
-# solution_date = "2024-08-24/"
+#solution_dates = ["2024-08-24/"]
+# solution_date = "2024-08-06/"
 for solution_date in solutions_dates
-
+    println(" ")
+    println(solution_date)
     #######################
     ### SET DIRECTORIES ###
     #######################

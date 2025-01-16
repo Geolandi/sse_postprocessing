@@ -107,7 +107,7 @@ function load_tremors(dirs, origin=nothing)
             tremors["depth"]    = [tremors["depth"]; tremors_i["depth"]];
             tremors["mag"]      = [tremors["mag"]; tremors_i["mag"]];
         catch
-            println("Skipped.")
+            #println("Skipped.")
         end
     end
     
@@ -119,7 +119,7 @@ end
 
 
 function load_tremors_shp(file)
-    print("Loading tremors from "*file*"... ")
+    #print("Loading tremors from "*file*"... ")
     tremors = Dict();
     try
         data = GeoDataFrames.read(file);
@@ -143,9 +143,9 @@ function load_tremors_shp(file)
         catch
             tremors["mag"] = NaN*zeros(n_tremors)
         end
-        println(" Done.")
+        #println(" Done.")
     catch
-        print("File not loaded: ")
+        #print("File not loaded: ")
     end
     return tremors
 end

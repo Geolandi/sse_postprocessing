@@ -22,6 +22,8 @@ function read_options_psd(options)
     options["PSD"] = Dict()
     # sample rate of the signal
     options["PSD"]["fs"] = 365.25; # number of samples per year
+    options["PSD"]["n_freq"] =
+        options["inversion"]["select_comps"]["frequency_analysis"]["n_freq"];
     options["PSD"]["n_sample"] =
         options["inversion"]["select_comps"]["frequency_analysis"]["n_sample"];
     options["PSD"]["f_last"] = 3.655466864042958 # to reproduce Matlab results

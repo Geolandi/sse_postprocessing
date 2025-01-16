@@ -3,22 +3,28 @@ using DSP
 function calc_psd(decomp, options)
     
     fs = options["fs"]
+    n_freq = options["n_freq"]
     n_sample = options["n_sample"]
     f_last = options["f_last"]
     
     timeline = decomp["timeline"][1,:]
+    T = timeline[end] - timeline[1]
     n_samples = length(timeline)
     V = decomp["V"]
     n_comps = size(V)[2]
     
+    # calculation using Julia's DSP
     p = periodogram(V[:,1]; nfft=Integer(round(n_samples*n_sample)), fs=fs)
     f = DSP.freq(p)[:]
-    # f_last = 1/n_samples*(round(365.25*n_samples/n_freq))
-
     f0 = f[1]
-    ind_last = findlast(f .< f_last)
+    ind_last = findlast(f .<= f_last)
     f1 = f[ind_last]
     f = f[1:ind_last]
+
+    # to replicate the Matlab results, calculate manually the frequencies
+    f = 1/T*range(0,round(365.25*T/n_freq),step=1)
+    f = f/n_sample;
+
     n_freqs = length(f)
     psds = zeros(n_freqs,n_comps)
     
@@ -26,8 +32,17 @@ function calc_psd(decomp, options)
         n_comps; desc = "Calculating variance", enabled = true
         )
     for i=1:n_comps
-        p = periodogram(V[:,i]; nfft=Integer(round(n_samples*n_sample)), fs=fs)
-        psds[:,i] = DSP.power(p)[1:ind_last]
+        # calculation using Julia's DSP
+        # p = periodogram(V[:,i]; nfft=Integer(round(n_samples*n_sample)), fs=fs)
+        # psds[:,i] = DSP.power(p)[1:n_freqs]
+
+        # to replicate the Matlab results, calculate the PSD via fft
+        x = zeros(Integer(n_samples*n_sample))
+        x[1:n_samples] = copy(V[:,i])
+        Y = DSP.fft(x);
+        psds_tmp = Y .* conj(Y) ./ length(Y);
+        psds[:,i] = psds_tmp[1:n_freqs]
+
         ProgressMeter.next!(progress)
     end
 
@@ -150,7 +165,7 @@ function select_comps2invert(decomp, f, psds, options)
     fselected, cpsd, ind_comps_complex, ind_comps_complex_removed = 
             select_complex_psds(f, psds, options["frequency_analysis"])
     ind_comps_common = select_common_modes(decomp, options)
-
+    
     ind_comps_common_removed = intersect(ind_comps_complex, ind_comps_common)
     
     if !isempty(ind_comps_common_removed)
