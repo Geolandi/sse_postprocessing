@@ -128,7 +128,7 @@ function create_model(m, Cm, decomp, fault, options, ind_comps)
     obs_local_vec = zeros(n_samples, n_patches, 3);
     # Construct a ParforProgressbar object
     progress = ProgressMeter.Progress(
-        n_samples; desc = "Creating slip local vector", enabled = true
+        n_samples; desc = "Creating local vector", enabled = true
         )
     Threads.@threads for t in 1:n_samples
         for p=1:n_patches

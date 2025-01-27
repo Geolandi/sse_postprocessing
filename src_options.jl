@@ -67,9 +67,9 @@ function read_options_smoothing(options)
         options["smooth"]["windowsize"] = 3
         options["smooth"]["centered_output"] = false
     elseif options["smooth"]["name"] == "lowpass"
-        options["smooth"]["filter_cutofffreq"] = 1/28
+        options["smooth"]["filter_cutofffreq"] = 1/7 #1/28
         options["smooth"]["fs"] = 1
-        options["smooth"]["filter_type"] = "hanning"
+        options["smooth"]["filter_type"] = "hamming" #"hanning"
         options["smooth"]["filter_window"] = 365
         options["smooth"]["scale"] = true
         options["smooth"]["causal"]  = false
@@ -88,10 +88,72 @@ function read_options_sliprate(options)
     return options
 end
 
+###############
+### TREMORS ###
+###############
+function read_options_tremors(options, fault)
+    yyyy = parse(Int, options["solution_date"][1:4])
+    mm = parse(Int, options["solution_date"][6:7])
+    dd = parse(Int, options["solution_date"][9:10])
+
+    options["tremors"] = Dict()
+    options["tremors"]["t0"] = options["scen"]["first_epoch"]
+    options["tremors"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["tremors"]["origin"] = fault["origin"]
+
+    return options
+end
+
+##############################
+## DYNAMICAL LOCAL INDICES ###
+##############################
+function read_options_localindices(options)
+    options["local_indices"] = Dict()
+    options["local_indices"]["p"]   = 0.99
+    options["local_indices"]["est"] = :exp
+    return options
+end
+
 ##############
 ### MOVIES ###
 ##############
 function read_options_movie_map(options, dirs)
+    yyyy = parse(Int, options["solution_date"][1:4])
+    mm = parse(Int, options["solution_date"][6:7])
+    dd = parse(Int, options["solution_date"][9:10])
+
+    options["plot"]["video"] = Dict()
+
+    options["plot"]["video"]["map_video"]                  = Dict()
+    options["plot"]["video"]["map_video"]["limits"]        = (-128.2, # lon_min
+                                                              -121.0, # lon_max
+                                                              39.0,   # lat_min
+                                                              51.0)   # lat_max
+    options["plot"]["video"]["map_video"]["figsize"]       = (1000, 1000)
+    options["plot"]["video"]["map_video"]["proj"]          = "+proj=merc"
+    options["plot"]["video"]["map_video"]["title"]         = "Cascadia"
+    options["plot"]["video"]["map_video"]["show_progress"] = true
+    options["plot"]["video"]["map_video"]["framerate"]     = 20
+    options["plot"]["video"]["map_video"]["n_lats_edges"]  = 101
+    options["plot"]["video"]["map_video"]["Δt"]            = 1.0
+    options["plot"]["video"]["map_video"]["t0"] = options["scen"]["first_epoch"]
+    options["plot"]["video"]["map_video"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    
+    options["plot"]["video"]["map_video"]["n_future_days"]  = 60
+    options["plot"]["video"]["map_video"]["dir_coastlines"] = 
+                                                    dirs["dir_coastlines"]
+    # if abs.(color) .< color_thresh_perc, set color to 0
+    options["plot"]["video"]["map_video"]["color_thresh_perc"] = 0 #0.15
+    options["plot"]["video"]["map_video"]["dir_output"] =  dirs["dir_results"] *
+                                                        "Slowquakes/real-time/"*
+                                                        dirs["dir_case"] * 
+                                                        options["solution_date"]
+    options["plot"]["video"]["map_video"]["output"] = "slip_potency_rate_map"
+
+    return options
+end
+
+function read_options_movie_map_northsouth(options, dirs)
     yyyy = parse(Int, options["solution_date"][1:4])
     mm = parse(Int, options["solution_date"][6:7])
     dd = parse(Int, options["solution_date"][9:10])
@@ -111,9 +173,10 @@ function read_options_movie_map(options, dirs)
     options["plot"]["video"]["map_video"]["n_lats_edges"]  = 101
     options["plot"]["video"]["map_video"]["Δt"]            = 1.0
     options["plot"]["video"]["map_video"]["t0"] = options["scen"]["first_epoch"]
-    options["plot"]["video"]["map_video"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["plot"]["video"]["map_video"]["t1"] = Date(yyyy,mm,dd) + Day(30)
     
     options["plot"]["video"]["map_video"]["n_future_days"] = 60
+    options["plot"]["video"]["map_video"]["lat_split"] = 44
     options["plot"]["video"]["map_video"]["dir_coastlines"] = 
                                                     dirs["dir_coastlines"]
     # if abs.(color) .< color_thresh_perc, set color to 0
@@ -122,7 +185,47 @@ function read_options_movie_map(options, dirs)
                                                         "Slowquakes/real-time/"*
                                                         dirs["dir_case"] * 
                                                         options["solution_date"]
-    options["plot"]["video"]["map_video"]["output"] = "slip_potency_rate_map"
+    options["plot"]["video"]["map_video"]["output"] = "slip_potency_rate_map_ns"
+
+    return options
+end
+
+function read_options_movie_map_northsouth_dθ(options, dirs)
+    yyyy = parse(Int, options["solution_date"][1:4])
+    mm = parse(Int, options["solution_date"][6:7])
+    dd = parse(Int, options["solution_date"][9:10])
+
+    options["plot"]["video_dθ"] = Dict()
+
+    options["plot"]["video"]["map_video_dθ"]            = Dict()
+    options["plot"]["video"]["map_video_dθ"]["limits"]  = (-128.2, # lon_min
+                                                           -121.0, # lon_max
+                                                           39.0,   # lat_min
+                                                           51.0)   # lat_max
+    options["plot"]["video"]["map_video_dθ"]["figsize"] = (1000, 1000)
+    options["plot"]["video"]["map_video_dθ"]["proj"]    = "+proj=merc"
+    options["plot"]["video"]["map_video_dθ"]["title"]   = "Cascadia"
+    options["plot"]["video"]["map_video_dθ"]["show_progress"] = true
+    options["plot"]["video"]["map_video_dθ"]["framerate"]     = 1
+    options["plot"]["video"]["map_video_dθ"]["n_lats_edges"]  = 101
+    options["plot"]["video"]["map_video_dθ"]["Δt"]            = 1.0
+    options["plot"]["video"]["map_video_dθ"]["t0"] = 2024.5
+                                        #options["scen"]["first_epoch"]
+    options["plot"]["video"]["map_video_dθ"]["t1"] = Date(yyyy,mm,dd) + Day(30)
+    
+    options["plot"]["video"]["map_video_dθ"]["n_future_days"] = 60
+    options["plot"]["video"]["map_video_dθ"]["lat_split"] = 44
+    options["plot"]["video"]["map_video_dθ"]["dir_coastlines"] = 
+                                                    dirs["dir_coastlines"]
+    # if abs.(color) .< color_thresh_perc, set color to 0
+    options["plot"]["video"]["map_video_dθ"]["color_thresh_perc"] = 0 #0.15
+    options["plot"]["video"]["map_video_dθ"]["dir_output"] = 
+                                                        dirs["dir_results"] *
+                                                        "Slowquakes/real-time/"*
+                                                        dirs["dir_case"] * 
+                                                        options["solution_date"]
+    options["plot"]["video"]["map_video_dθ"]["output"] = 
+            "slip_potency_rate_map_ns_dθ"
 
     return options
 end
@@ -264,5 +367,29 @@ function read_options_map_ts(options, dirs)
                                                         dirs["dir_case"] *
                                                         options["solution_date"]
     options["plot"]["figures"]["map_ts"]["output"] = "slip_potency_rate"
+    return options
+end
+
+# MAP LAT-TIME
+function read_options_map_ts_northsouth(options, dirs)
+    yyyy = parse(Int, options["solution_date"][1:4])
+    mm = parse(Int, options["solution_date"][6:7])
+    dd = parse(Int, options["solution_date"][9:10])
+
+    options["plot"]["figures"]["map_ts"] = Dict()
+    options["plot"]["figures"]["map_ts"]["figsize"] = (1510, 900)
+    options["plot"]["figures"]["map_ts"]["title"]   = "Cascadia"
+    options["plot"]["figures"]["map_ts"]["n_lats_edges"]  = 101
+    options["plot"]["figures"]["map_ts"]["color_thresh_perc"] = 0.0
+    options["plot"]["figures"]["map_ts"]["Δt"] = 60/365.25
+    options["plot"]["figures"]["map_ts"]["t_max_crosscorr"] = 14
+    options["plot"]["figures"]["map_ts"]["t0"] = options["scen"]["first_epoch"]
+    options["plot"]["figures"]["map_ts"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["plot"]["figures"]["map_ts"]["lat_split"] = 44
+    options["plot"]["figures"]["map_ts"]["dir_output"] = dirs["dir_results"] *
+                                                        "Slowquakes/real-time/"*
+                                                        dirs["dir_case"] *
+                                                        options["solution_date"]
+    options["plot"]["figures"]["map_ts"]["output"] = "slip_potency_rate_ns"
     return options
 end

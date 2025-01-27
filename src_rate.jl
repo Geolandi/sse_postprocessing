@@ -39,6 +39,8 @@ function create_xsmooth(X, timeline, method)
         responsetype = Lowpass(Wn)
         if method["filter_type"] == "hanning"
             designmethod = FIRWindow(hanning(filter_win; zerophase=false))
+        elseif method["filter_type"] == "hamming"
+            designmethod = FIRWindow(DSP.hamming(filter_win; zerophase=false))
         end
         Xsmooth = zeros(n_features, n_samples)
         for i=1:n_features

@@ -1675,3 +1675,381 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
     
     return nothing
 end
+
+
+function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
+
+    figsize         = options["figsize"]
+    title           = options["title"]
+    n_lats_edges    = options["n_lats_edges"]
+    t0              = options["t0"] 
+    t1              = options["t1"] 
+    color_thresh    = options["color_thresh_perc"]
+    Δt              = options["Δt"]
+    t_max_crosscorr = options["t_max_crosscorr"]
+    lat_split       = options["lat_split"] 
+    dir_output      = options["dir_output"]
+    output          = options["output"]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+
+    t0_decyear, t0_date = get_time_decyear_and_date(t0)
+    t1_decyear, t1_date = get_time_decyear_and_date(t1)
+
+    n_patches = size(fault["llh"])[1]
+
+    ##############################
+    ### FIND VARIABLES TO PLOT ###
+    ##############################
+    # Observable from GNSS solution (e.g., slip potency rate)
+    obs_ind_t0 = findfirst(obs_var["timeline"][1,:] .- t0_decyear .>= 0)
+    obs_ind_t1 = findlast(t1_decyear .- obs_var["timeline"][1,:] .>= 0)
+    obs_timeline = obs_var["timeline"][1,obs_ind_t0:obs_ind_t1]
+    obs_dates = Date.(DateFormats.yeardecimal.(obs_timeline))
+    obs = obs_var["obs"][:,obs_ind_t0:obs_ind_t1]
+    n_samples_obs = length(obs_timeline)
+    # Find color and maxmin values along latitude for the lat-time map
+    obs_on_fault, colorrange, color_exp = get_color(obs, color_thresh)
+    obs_timelats, lats = get_color_lontime_map(obs_on_fault,
+                            fault, n_samples_obs, n_lats_edges)
+    # Split North and South observations
+    ind_lats_north = lats .>= lat_split
+    ind_lats_south = lats .< lat_split
+    obs_timelats_north = obs_timelats[ind_lats_north,:]
+    obs_timelats_south = obs_timelats[ind_lats_south,:]
+    max_obs_timelats_north = maximum(obs_timelats_north, dims=1)[1,:]
+    max_obs_timelats_south = maximum(obs_timelats_south, dims=1)[1,:]
+    n_lats = n_lats_edges - 1;
+    # Tremors on original timeline (non-uniform)
+    tremors_ind_t0 = findfirst(tremors["timeline"] .- t0_decyear .>= 0)
+    tremors_ind_t1 = findlast(t1_decyear .- tremors["timeline"] .>= 0)
+    tremors_timeline = tremors["timeline"][tremors_ind_t0:tremors_ind_t1]
+    tremors_dates = Date.(DateFormats.yeardecimal.(tremors_timeline))
+    lat_tremors = tremors["lat"][tremors_ind_t0:tremors_ind_t1]
+    # Lon-lat of all tremors in considered time range
+    tremors_ll = Point2f.(tremors["lon"][tremors_ind_t0:tremors_ind_t1],
+                          tremors["lat"][tremors_ind_t0:tremors_ind_t1])
+    # Tremors on daily timeline
+    tremors_R_ind_t0 = findfirst(tremors["timeline_R"] .- t0_decyear .>= 0)
+    tremors_R_ind_t1 = findlast(t1_decyear .- tremors["timeline_R"] .>= 0)
+    tremors_timeline_R =tremors["timeline_R"][tremors_R_ind_t0:tremors_R_ind_t1]
+    tremors_dates_R = Date.(DateFormats.yeardecimal.(tremors_timeline_R))
+    
+    ind_lats_fault_north = fault["llh"][:,2] .>= lat_split
+    ind_lats_fault_south = fault["llh"][:,2] .< lat_split
+    tremorsR_north = tremors["R"][ind_lats_fault_north,:]
+    tremorsR_south = tremors["R"][ind_lats_fault_south,:]
+    sumR_north=sum(tremorsR_north, dims=1)[1,tremors_R_ind_t0:tremors_R_ind_t1]
+    sumR_south=sum(tremorsR_south, dims=1)[1,tremors_R_ind_t0:tremors_R_ind_t1]
+    
+    ##################################################
+    ### CREATE TIMELINE OF TIMES AND DATES TO PLOT ###
+    ##################################################
+    timeline2plot, dates2plot = create_timeline(t0_date, t1_date)
+    n_samples2plot = length(dates2plot)
+
+    # Initialize to NaN variables to plot
+    obs_on_fault2plot = zeros(n_patches, n_samples2plot) .* NaN
+    obs_timelats2plot = zeros(n_lats, n_samples2plot) .* NaN
+    max_obs_timelats2plot_north = zeros(n_samples2plot) .* NaN
+    max_obs_timelats2plot_south = zeros(n_samples2plot) .* NaN
+    sumR2plot_north = zeros(n_samples2plot) .* NaN
+    sumR2plot_south = zeros(n_samples2plot) .* NaN
+    lat_tremors2plot = zeros(n_samples2plot) .* NaN
+
+    # Find indices of dates shared with the dates to plot
+    ind_obs = findall(x -> x in dates2plot, obs_dates)
+    ind_tremors = findall(x -> x in dates2plot, tremors_dates)
+    ind_tremors_R = findall(x -> x in dates2plot, tremors_dates_R)
+
+    # Fill with values the variables to plot
+    obs_on_fault2plot[:,ind_obs] = obs_on_fault[:,:]
+    obs_timelats2plot[:,ind_obs] = obs_timelats[:,:]
+    max_obs_timelats2plot_north[ind_obs] = max_obs_timelats_north[:]
+    max_obs_timelats2plot_south[ind_obs] = max_obs_timelats_south[:]
+    sumR2plot_north[ind_tremors_R] = sumR_north[:]
+    sumR2plot_south[ind_tremors_R] = sumR_south[:]
+    
+    ind_notnan_max_obs_timelats2plot_north = findall(x -> !isnan(x),
+                                            max_obs_timelats2plot_north)
+    norm_max_obs_timelats2plot_north = max_obs_timelats2plot_north ./ 
+        maximum(
+            max_obs_timelats2plot_north[ind_notnan_max_obs_timelats2plot_north])
+    
+    ind_notnan_max_obs_timelats2plot_south = findall(x -> !isnan(x),
+                                            max_obs_timelats2plot_south)
+    norm_max_obs_timelats2plot_south = max_obs_timelats2plot_south ./ 
+        maximum(
+            max_obs_timelats2plot_south[ind_notnan_max_obs_timelats2plot_south])
+    
+    ind_notnan_sumR2plot_north = findall(x -> !isnan(x), sumR2plot_north)
+    norm_sumR2plot_north = sumR2plot_north ./
+                    maximum(sumR2plot_north[ind_notnan_sumR2plot_north])
+
+    ind_notnan_sumR2plot_south = findall(x -> !isnan(x), sumR2plot_south)
+    norm_sumR2plot_south = sumR2plot_south ./
+                    maximum(sumR2plot_south[ind_notnan_sumR2plot_south])
+    
+    min_ylims_axa = minimum([0,
+        minimum(norm_max_obs_timelats2plot_north[
+            ind_notnan_max_obs_timelats2plot_north]),
+        minimum(norm_sumR2plot_north[ind_notnan_sumR2plot_north])]
+        )
+    max_ylims_axa = maximum([1,
+        maximum(norm_max_obs_timelats2plot_north[
+            ind_notnan_max_obs_timelats2plot_north]),
+        maximum(norm_sumR2plot_north[ind_notnan_sumR2plot_north])]
+        )
+
+    min_ylims_axc = minimum([0,
+        minimum(norm_max_obs_timelats2plot_south[
+            ind_notnan_max_obs_timelats2plot_south]),
+        minimum(norm_sumR2plot_south[ind_notnan_sumR2plot_south])]
+        )
+    max_ylims_axc = maximum([1,
+        maximum(norm_max_obs_timelats2plot_south[
+            ind_notnan_max_obs_timelats2plot_south]),
+        maximum(norm_sumR2plot_south[ind_notnan_sumR2plot_south])]
+        )
+    
+    # Find ticks for x ans y axes
+    xticks = collect(timeline2plot[1]-1:2:timeline2plot[end]+1)
+    xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
+    
+    lat_min = minimum(minimum(fault["lat"]));
+    lat_max = maximum(maximum(fault["lat"]));
+    yticks_axb = collect(lat_min-1:2:lat_max+1)
+    yticks_axb = [round(Int, ytick) for ytick in yticks_axb] # Ensure ticks are integers
+
+    
+    ind_nan_norm_max_obs_timelats2plot_north = findall(!isnan, 
+                                            norm_max_obs_timelats2plot_north)
+    ind_nan_norm_max_obs_timelats2plot_south = findall(!isnan, 
+                                            norm_max_obs_timelats2plot_south)
+    ind_nan_norm_sumR2plot_north = findall(!isnan, norm_sumR2plot_north)
+    ind_nan_norm_sumR2plot_south = findall(!isnan, norm_sumR2plot_south)
+    inds_north = intersect(ind_nan_norm_max_obs_timelats2plot_north,
+                            ind_nan_norm_sumR2plot_north)
+    inds_south = intersect(ind_nan_norm_max_obs_timelats2plot_south,
+                            ind_nan_norm_sumR2plot_south)
+    x_north = norm_max_obs_timelats2plot_north[inds_north]
+    x_south = norm_max_obs_timelats2plot_south[inds_south]
+    y_north = norm_sumR2plot_north[inds_north]
+    y_south = norm_sumR2plot_south[inds_south]
+
+    ## Explanation of crosscor
+    ## (see https://discourse.julialang.org/t/cross-correlation-with-statsbase-crosscor-answer-does-not-make-sense/44374)
+    # Julia 1.5
+    # using LinearAlgebra
+    # numone, numtwo = [2,3,4,5], [1,2,3,4]
+    # x, y = numone[1:end-1], numtwo[2:end]
+    # ra = dot(x,y)/sqrt(dot(numone,numone)*dot(numtwo,numtwo)) # what crosscor does
+    # rb = dot(x,y)/sqrt(dot(x,x)*dot(y,y)) # what you expect
+    # [ra rb]
+
+    inds_crosscorr = range(-t_max_crosscorr,t_max_crosscorr,step=1)
+    r_north = crosscor(x_north,y_north,inds_crosscorr; demean=false)
+    r_south = crosscor(x_south,y_south,inds_crosscorr; demean=false)
+    r_north_max = maximum(r_north)
+    r_south_max = maximum(r_south)
+    ind_r_north_max = argmax(r_north)
+    ind_r_south_max = argmax(r_south)
+    n_days_max_crosscorr_north = inds_crosscorr[ind_r_north_max]
+    n_days_max_crosscorr_south = inds_crosscorr[ind_r_south_max]
+
+    ##############
+    ### FIGURE ###
+    ##############
+    fig = Figure(size=figsize)
+    gt = fig[0, 1] = GridLayout()
+    gabc = fig[1:3, 1] = GridLayout()
+    ga = gabc[1, 1] = GridLayout()
+    gb = gabc[2, 1] = GridLayout()
+    gc = gabc[3, 1] = GridLayout()
+    
+    #############
+    ### TITLE ###
+    #############
+    titlelayout = GridLayout(gt[1, 1],
+                             halign = :center,
+                             tellwidth = false
+                             )
+    Label(titlelayout[1, 1],
+          title,
+          halign = :center,
+          fontsize=36,
+          font = "Times New Roman"
+          )
+
+    ###################
+    ### TIME SERIES ###
+    ###################
+    axa = Axis(ga[1,1],
+               xlabel=L"Time (yr)$$",
+               ylabel=L"Norm. $R$ and $\dot{p}$",
+               xlabelsize=24,
+               ylabelsize=24,
+               xticks=xticks,
+               yticks=[0,0.5,1],
+               xticklabelsize=24,
+               yticklabelsize=24,
+               xaxisposition=:top,
+               )
+    xlims!(axa, timeline2plot[1], timeline2plot[end] + Δt)
+    ylims!(axa, min_ylims_axa, max_ylims_axa)
+
+    # tremors_ts_scatter = Makie.scatter!(
+    #     axa,
+    #     timeline2plot, norm_sumR2plot_north,
+    #     color=:black,
+    #     markersize=5,
+    #     alpha=1,
+    #     )
+    tremors_ts_lines = Makie.lines!(
+        axa,
+        timeline2plot, norm_sumR2plot_north,
+        color=:black,
+        )
+
+    # obs_ts_lines = Makie.scatter!(
+    #     axa,
+    #     timeline2plot, norm_max_obs_timelats2plot_north,
+    #     color=:red,
+    #     markersize=5,
+    #     alpha=1,
+    #     )
+    obs_ts_lines = Makie.lines!(
+        axa,
+        timeline2plot, norm_max_obs_timelats2plot_north,
+        color=:red,
+        )
+    
+    dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.02
+    dy = (max_ylims_axa - min_ylims_axa)*0.17
+    Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-dy;
+            text="corr = "*string(round(r_north_max, sigdigits=2)), fontsize=16)
+    if abs(n_days_max_crosscorr_north) == 1
+        str_n_days_max_crosscorr_north = "Δt = " * 
+                        string(n_days_max_crosscorr_north)*" day"
+    else
+        str_n_days_max_crosscorr_north = "Δt = " * 
+                            string(n_days_max_crosscorr_north)*" days"
+    end
+    Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-2*dy;
+            text=str_n_days_max_crosscorr_north, fontsize=16)
+    
+
+    axc = Axis(gc[1,1],
+               xlabel=L"Time (yr)$$",
+               ylabel=L"Norm. $R$ and $\dot{p}$",
+               xlabelsize=24,
+               ylabelsize=24,
+               xticks=xticks,
+               yticks=[0,0.5,1],
+               xticklabelsize=24,
+               yticklabelsize=24,
+               xaxisposition=:bottom,
+               )
+    xlims!(axc, timeline2plot[1], timeline2plot[end] + Δt)
+    ylims!(axc, min_ylims_axc, max_ylims_axc)
+
+    # tremors_ts_scatter = Makie.scatter!(
+    #     axc,
+    #     timeline2plot, norm_sumR2plot_south,
+    #     color=:black,
+    #     markersize=5,
+    #     alpha=1,
+    #     )
+    tremors_ts_lines = Makie.lines!(
+        axc,
+        timeline2plot, norm_sumR2plot_south,
+        color=:black,
+        )
+
+    # obs_ts_lines = Makie.scatter!(
+    #     axc,
+    #     timeline2plot, norm_max_obs_timelats2plot_south,
+    #     color=:red,
+    #     markersize=5,
+    #     alpha=1,
+    #     )
+    obs_ts_lines = Makie.lines!(
+        axc,
+        timeline2plot, norm_max_obs_timelats2plot_south,
+        color=:red,
+        )
+    
+    dy = (max_ylims_axc - min_ylims_axc)*0.17
+    Makie.text!(axc, timeline2plot[1]+dx, max_ylims_axc-dy;
+            text="corr = "*string(round(r_south_max, sigdigits=2)), fontsize=16)
+    if abs(n_days_max_crosscorr_south) == 1
+        str_n_days_max_crosscorr_south = "Δt = " * 
+                        string(n_days_max_crosscorr_south)*" day"
+    else
+        str_n_days_max_crosscorr_south = "Δt = " * 
+                            string(n_days_max_crosscorr_south)*" days"
+    end
+    Makie.text!(axc, timeline2plot[1]+dx, max_ylims_axc-2*dy;
+            text=str_n_days_max_crosscorr_south, fontsize=16)
+
+    #########################
+    ### MAP LATITUDE-TIME ###
+    #########################
+    axb = Axis(gb[1, 1],
+               ylabel=L"Latitude ($\degree$)",
+               ylabelsize=24,
+               yticklabelsize=24,
+               yticks=yticks_axb
+               )
+    hidexdecorations!(axb, grid = false)
+
+    hm = heatmap!(axb,
+                  timeline2plot,
+                  lats,
+                  obs_timelats2plot',
+                  colormap=:bwr,
+                  colorrange=colorrange
+                  )
+    
+    tr_map = Makie.scatter!(
+        axb,
+        tremors_timeline,
+        lat_tremors,
+        color=:black,
+        markersize=1,
+        alpha=1.0,
+        )
+    translate!(tr_map, 0, 0, 100) # move above surface plot
+    
+    ################
+    ### COLORBAR ###
+    ################
+    label_text = "Slip Potency Rate"
+    max_abs_value = maximum(abs.(colorrange))
+    tick_step = ceil(Int, max_abs_value / 3)
+    ticks = collect(-3*tick_step:tick_step:3*tick_step)
+    ticks = [round(Int, tick) for tick in ticks]  # Ensure ticks are integers
+    Colorbar(fig[2, 2],
+             limits=colorrange,
+             colormap=:bwr,
+             flipaxis=true,
+             label=L"%$(label_text) (m$^3$/yr) $\times 10^{%$(color_exp)}$",
+             vertical=true,
+             labelsize=24,
+             ticks=ticks,
+             ticklabelsize=24
+             )
+    
+    #################################
+    ### GENERAL LAYOUT ADJUSTMENT ###
+    #################################
+    rowgap!(gabc, 0)
+    rowsize!(gabc, 1, Auto(0.2))
+    rowsize!(gabc, 3, Auto(0.2))
+    
+    save(dir_output*output*"_ts_"*title*".png", fig)
+    
+    return r_north, r_south
+end

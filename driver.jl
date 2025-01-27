@@ -39,9 +39,9 @@ solutions_dates = ["2024-08-01/",
                    "2024-08-30/",
                    "2024-08-31/",
                    ]
-#solution_dates = ["2024-08-24/"]
-# solution_date = "2024-08-06/"
-for solution_date in solutions_dates
+solutions_dates = ["2025-01-06/"]
+solution_date = "2025-01-24/"
+# for solution_date in solutions_dates
     println(" ")
     println(solution_date)
     #######################
@@ -124,9 +124,13 @@ for solution_date in solutions_dates
     V_dot, timeline_dot = calc_derivative(V_smooth', timeline_smooth,
         options["slip_rate"]["windowsize"], true)
 
+    
     ########################################
     ### CREATE SLIP AND SLIP RATE MODELS ###
     ########################################
+    # # create slip model
+    # slip = create_model(m, Cm, ICA, fault, options, ind_comps)
+
     # option to specify what rake direction is positive
     options = read_options_inversion(options)
     # set smooth ICA dictionary
@@ -157,25 +161,27 @@ for solution_date in solutions_dates
     ### TREMORS ###
     ###############
     # update and load tremors
-    #update_tremors(dirs, "today");
-    tremors = load_tremors(dirs, fault["origin"]);
-    t0_decyear, t0_date = get_time_decyear_and_date(timeline_dot[1])
+    update_tremors(dirs, "yesterday");
+    options = read_options_tremors(options, fault)
+    tremors = load_tremors(dirs, options["tremors"]);
+    t0_decyear, t0_date = get_time_decyear_and_date(
+                                    options["scen"]["first_epoch"])
     t1_decyear, t1_date = get_time_decyear_and_date("today")
     timeline2plot, dates2plot = create_timeline(t0_date, t1_date)
     tremors = select_tremors(tremors, timeline2plot, fault)
-    # tremors = select_tremors(tremors, timeline_dot, fault)
-
-
+    
     ####################################
     ### FLAGS FOR MOVIES AND FIGURES ###
     ####################################
-    flag_plot_video_map        = true
-    flag_plot_fig_intro        = true
-    flag_plot_fig_ts           = true
-    flag_plot_fig_ICs          = true
-    flag_plot_fig_PSD          = true
-    flag_plot_fig_selectparams = true
-    flag_plot_fig_map_lat_time = true
+    flag_plot_video_map            = false
+    flag_plot_video_map_northsouth = true
+    flag_plot_fig_intro            = true
+    flag_plot_fig_ts               = true
+    flag_plot_fig_ICs              = true
+    flag_plot_fig_PSD              = true
+    flag_plot_fig_selectparams     = true
+    flag_plot_fig_map_lat_time     = true
+    flag_plot_fig_map_lat_time_ns  = true
 
     ##############
     ### MOVIES ###
@@ -183,6 +189,14 @@ for solution_date in solutions_dates
     if flag_plot_video_map == true
         options = read_options_movie_map(options, dirs)
         make_video_map(slip_potency_rate,
+                    tremors,
+                    fault,
+                    options["plot"]["video"]["map_video"]
+                    )
+    end
+    if flag_plot_video_map_northsouth == true
+        options = read_options_movie_map_northsouth(options, dirs)
+        make_video_map_northsouth(slip_potency_rate,
                     tremors,
                     fault,
                     options["plot"]["video"]["map_video"]
@@ -243,46 +257,31 @@ for solution_date in solutions_dates
         fig = plot_map_lattimets_notremors(slip_potency_rate, fault,
             options["plot"]["figures"]["map_ts"])
     end
-end
 
-
-
-###############################
-### DYNAMICAL LOCAL INDICES ###
-###############################
-# options["local_indices"] = Dict()
-# options["local_indices"]["p"]   = 0.99
-# options["local_indices"]["est"] = :exp
-
-# d, θ = calc_d_θ(slip_potency_rate, options["local_indices"])
-
-# make_video_map_dθ(slip_potency_rate, tremors, fault, d, θ,
-#                     options["plot"]["video"]["map_video"])
-
-# make_video_dtheta(options["plot"]["movie"])
-
-# using GLMakie
-# me = zeros(3,size(ICA["U"])[2])
-# st = zeros(3,size(ICA["U"])[2])
-# sk = zeros(3,size(ICA["U"])[2])
-# for i=1:size(ICA["U"])[2]
-#     for j=1:3
-#         fig_hist = Makie.Figure()
-#         ax_hist = Makie.Axis(fig_hist[1,1])
-#         Makie.hist!(ICA["U"][j:3:end,i])
-#         #save("./tmp/hist_U"*string(i)*"_"*string(j)*".png", fig_hist)
-#         me[j,i] = mean(ICA["U"][j:3:end,i])
-#         st[j,i] = std(ICA["U"][j:3:end,i])
-#         sk[j,i] = skewness(ICA["U"][j:3:end,i])
-#     end
+    # slip potency rate lat vs. time map
+    # map latitude-time and latitude-time with rate time series
+    if flag_plot_fig_map_lat_time_ns == true
+        options = read_options_map_ts_northsouth(options, dirs)
+        r_north, r_south = plot_map_lattimets_northsouth(slip_potency_rate,
+            tremors, fault,
+            options["plot"]["figures"]["map_ts"])
+    end
 # end
 
-# fig = Makie.Figure()
-# ax = Makie.Axis(fig[1,1])
-# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[1,:])
-# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[2,:])
-# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[3,:])
-# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[1,:])
-# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[2,:])
-# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[3,:])
-# display(fig)
+
+
+# ##############################
+# ## DYNAMICAL LOCAL INDICES ###
+# ##############################
+
+# options = read_options_localindices(options)
+# ind_notnan_tremorsR = findall(x -> !isnan(x), tremors["R"][1,:])
+# tremors["obs"] = tremors["R"][:,ind_notnan_tremorsR]
+# d, θ = calc_d_θ(tremors, options["local_indices"])
+# #d, θ = calc_d_θ(slip_potency_rate, options["local_indices"])
+
+# options = read_options_movie_map_northsouth_dθ(options, dirs)
+# make_video_map_dθ2(slip_potency_rate, tremors, fault, d, θ,
+#     options["plot"]["video"]["map_video_dθ"])
+
+# # make_video_dtheta(options["plot"]["movie"])
