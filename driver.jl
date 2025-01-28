@@ -9,7 +9,7 @@ include("src_tremors.jl")
 include("src_time.jl")
 
 # Add ffmpeg directory to PATH to be able to plot with GMT
-ENV["PATH"] = ENV["PATH"] * ":/opt/homebrew/bin"
+ENV["PATH"] = ENV["PATH"] * ":/usr/bin"
 
 solutions_dates = ["2024-08-01/",
                    "2024-08-02/",
@@ -39,20 +39,25 @@ solutions_dates = ["2024-08-01/",
                    "2024-08-30/",
                    "2024-08-31/",
                    ]
+<<<<<<< HEAD
 solutions_dates = ["2025-01-06/"]
 solution_date = "2025-01-24/"
 # for solution_date in solutions_dates
+=======
+solution_dates = ["2025-01-26/"]
+# solution_date = "2024-08-06/"
+for solution_date in solutions_dates
+>>>>>>> 4017893 (Update ENV path)
     println(" ")
     println(solution_date)
     #######################
     ### SET DIRECTORIES ###
     #######################
     dirs = Dict()
-    dirs["dir_data"] = "/Users/ag2347/Work/Data/"
-    dirs["dir_results"] = "/Users/ag2347/Work/Results/"
+    dirs["dir_data"] = "/space/ag2347/Data/"
+    dirs["dir_results"] = "/space/ag2347/Results/"
     dirs["dir_case"] = "Cascadia/"
-    dirs["dir_results2load"] = dirs["dir_results"] * "Slowquakes/real-time/" *
-                            dirs["dir_case"] * "matfiles/" * solution_date
+    dirs["dir_results2load"] = "/space/ag2347/Scripts/Matlab/vbICA_Cascadia/Scenarios/Cascadia/SSE/ES/results/" * solution_date
     dirs["dir_fault"]   = dirs["dir_data"] * "Faults/" * dirs["dir_case"]
     dirs["dir_tremors"] = dirs["dir_data"]*"Tremors/"*dirs["dir_case"]*"PNSN/"
     dirs["dir_coastlines"] = dirs["dir_data"] * "NaturalEarth/coastlines_jl/"
@@ -268,6 +273,7 @@ solution_date = "2025-01-24/"
     end
 # end
 
+<<<<<<< HEAD
 
 
 # ##############################
@@ -285,3 +291,14 @@ solution_date = "2025-01-24/"
 #     options["plot"]["video"]["map_video_dθ"])
 
 # # make_video_dtheta(options["plot"]["movie"])
+=======
+# fig = Makie.Figure()
+# ax = Makie.Axis(fig[1,1])
+# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[1,:])
+# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[2,:])
+# Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), st[3,:])
+# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[1,:])
+# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[2,:])
+# # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[3,:])
+# display(fig)
+>>>>>>> 4017893 (Update ENV path)
