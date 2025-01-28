@@ -39,7 +39,7 @@ solutions_dates = ["2024-08-01/",
                    "2024-08-30/",
                    "2024-08-31/",
                    ]
-solution_dates = ["2025-01-26/"]
+solution_dates = ["2025-01-25/"]
 # solution_date = "2024-08-06/"
 for solution_date in solutions_dates
     println(" ")
