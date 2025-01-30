@@ -497,7 +497,7 @@ function plot_select_comps_and_smoothing(f, cs, misfit_comps, options)
         n_ind_comps_complex_removed = length(ind_comps_complex_removed)
         for i=1:n_ind_comps_complex_removed
             GMT.plot!(f, cs[ind_comps_complex_removed[i],:],
-                    pen="2p,255/165/0,dashed")
+                    pen="2p,255/165/0")
         end
         n_ind_comps_common = length(ind_comps_common)
         for i=1:n_ind_comps_common
@@ -752,7 +752,7 @@ function plot_comp(decomp, options)
         ###################
         sum_tr = sum(tremors["R"], dims=1)[1,:]
         axa = Axis(ga[1,1],
-                xlabel=L"Time ($yr$)",
+                xlabel=L"Time (yr)$$",
                 ylabel=L"Normalized\ntime evolution",
                 xlabelsize=24,
                 ylabelsize=24,
@@ -984,7 +984,7 @@ function make_figure_map_lat_time(obs_var, fault, options)
     xticks = collect(timeline[1]-1:2:timeline[end]+1)
     xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
     ax = Axis(fig[1, 1],
-               xlabel=L"Time ($yr$)",
+               xlabel=L"Time (yr)$$",
                ylabel=L"Latitude ($\degree$)",
                xaxisposition=:top,
                xlabelsize=24,
@@ -1023,7 +1023,7 @@ function make_figure_map_lat_time(obs_var, fault, options)
              limits=colorrange,
              colormap=:bwr,
              flipaxis=false,
-             label=L"%$(label_text) $(m^3/yr)$ $\times 10^{%$(color_exp)}$",
+             label=L"%$(label_text) (m$^3$/yr) $\times 10^{%$(color_exp)}$",
              vertical=false,
              labelsize=24,
              ticks=ticks,
@@ -1110,7 +1110,7 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
     xticks = collect(timeline[1]-1:2:timeline[end]+1)
     xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
     axa = Axis(ga[1,1],
-               xlabel=L"Time ($yr$)",
+               xlabel=L"Time (yr)$$",
                ylabel=L"Norm. $R$ and $\dot{p}$",
                xticks=xticks,
                xlabelsize=24,
@@ -1184,7 +1184,7 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
              limits=colorrange,
              colormap=:bwr,
              flipaxis=false,
-             label=L"%$(label_text) $(m^3/yr)$ $\times 10^{%$(color_exp)}$",
+             label=L"%$(label_text) (m$^3$/yr) $\times 10^{%$(color_exp)}$",
              vertical=false,
              labelsize=24,
              ticks=ticks,
@@ -1212,7 +1212,7 @@ function get_color(obs, color_thresh)
     return color, colorrange, color_exp
 end
 
-function get_color_lontime_map(color, fault, n_samples, n_lats_edges)
+function get_color_lattime_map(color, fault, n_samples, n_lats_edges)
     n_lats = n_lats_edges - 1;
     lat_min = minimum(minimum(fault["lat"]));
     lat_max = maximum(maximum(fault["lat"]));
@@ -1243,6 +1243,7 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     color_thresh  = options["color_thresh_perc"]
     Δt = options["Δt"]
     t_max_crosscorr = options["t_max_crosscorr"]
+    xticks_dist     = options["xticks_dist"] 
     dir_output = options["dir_output"]
     output = options["output"]
 
@@ -1267,7 +1268,7 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     n_samples_obs = length(obs_timeline)
     # Find color and maxmin values along latitude for the lat-time map
     obs_on_fault, colorrange, color_exp = get_color(obs, color_thresh)
-    obs_timelats, lats = get_color_lontime_map(obs_on_fault,
+    obs_timelats, lats = get_color_lattime_map(obs_on_fault,
                             fault, n_samples_obs, n_lats_edges)
     max_obs_timelats = maximum(obs_timelats, dims=1)[1,:]
     n_lats = n_lats_edges - 1;
@@ -1328,7 +1329,7 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
         )
     
     # Find ticks for x ans y axes
-    xticks = collect(timeline2plot[1]-1:2:timeline2plot[end]+1)
+    xticks = collect(timeline2plot[1]-1:xticks_dist:timeline2plot[end]+1)
     xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
     
     lat_min = minimum(minimum(fault["lat"]));
@@ -1354,11 +1355,13 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     # rb = dot(x,y)/sqrt(dot(x,x)*dot(y,y)) # what you expect
     # [ra rb]
 
-    inds_crosscorr = range(-t_max_crosscorr,t_max_crosscorr,step=1)
-    r = crosscor(x,y,inds_crosscorr; demean=false)
-    r_max = maximum(r)
-    ind_r_max = argmax(r)
-    n_days_max_crosscorr = inds_crosscorr[ind_r_max]
+    if t_max_crosscorr > 0
+        inds_crosscorr = range(-t_max_crosscorr,t_max_crosscorr,step=1)
+        r = crosscor(x,y,inds_crosscorr; demean=false)
+        r_max = maximum(r)
+        ind_r_max = argmax(r)
+        n_days_max_crosscorr = inds_crosscorr[ind_r_max]
+    end
 
     ##############
     ### FIGURE ###
@@ -1387,7 +1390,7 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     ### TIME SERIES ###
     ###################
     axa = Axis(ga[1,1],
-               xlabel=L"Time ($yr$)",
+               xlabel=L"Time (yr)$$",
                ylabel=L"Norm. $R$ and $\dot{p}$",
                xlabelsize=24,
                ylabelsize=24,
@@ -1425,28 +1428,32 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
         color=:red,
         )
     
-    dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.02
-    dy = (max_ylims_axa - min_ylims_axa)*0.15
-    Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-dy;
-            text="corr = "*string(round(r_max, sigdigits=2)), fontsize=16)
-    if abs(n_days_max_crosscorr) == 1
-        str_n_days_max_crosscorr = "Δt = "*string(n_days_max_crosscorr)*" day"
-    else
-        str_n_days_max_crosscorr = "Δt = "*string(n_days_max_crosscorr)*" days"
+    if t_max_crosscorr > 0
+        dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.02
+        dy = (max_ylims_axa - min_ylims_axa)*0.15
+        Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-dy;
+                text="corr = "*string(round(r_max, sigdigits=2)), fontsize=16)
+        if abs(n_days_max_crosscorr) == 1
+            str_n_days_max_crosscorr = "Δt = "*string(n_days_max_crosscorr)*" day"
+        else
+            str_n_days_max_crosscorr = "Δt = "*string(n_days_max_crosscorr)*" days"
+        end
+        Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-2*dy;
+                text=str_n_days_max_crosscorr, fontsize=16)
     end
-    Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-2*dy;
-            text=str_n_days_max_crosscorr, fontsize=16)
     
 
     #########################
     ### MAP LATITUDE-TIME ###
     #########################
     axb = Axis(gb[1, 1],
-               ylabel=L"Latitude ($\degree$)",
+               ylabel=L"Latitude $$",
                ylabelsize=24,
                yticklabelsize=24,
                yticks=yticks_axb
                )
+    xlims!(axb, timeline2plot[1], timeline2plot[end] + Δt)
+    axb.ytickformat = yticks_axb -> string.(Int.(yticks_axb)) .* "°"
     hidexdecorations!(axb, grid = false)
 
     hm = heatmap!(axb,
@@ -1479,7 +1486,7 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
              limits=colorrange,
              colormap=:bwr,
              flipaxis=false,
-             label=L"%$(label_text) $(m^3/yr)$ $\times 10^{%$(color_exp)}$",
+             label=L"%$(label_text) (m$^3$/yr) $\times 10^{%$(color_exp)}$",
              vertical=false,
              labelsize=24,
              ticks=ticks,
@@ -1494,7 +1501,11 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     
     save(dir_output*output*"_ts_"*title*".png", fig)
     
-    return r
+    if t_max_crosscorr > 0
+        return r
+    else
+        return nothing
+    end
 end
 
 
@@ -1508,6 +1519,7 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
     color_thresh  = options["color_thresh_perc"]
     Δt = options["Δt"]
     t_max_crosscorr = options["t_max_crosscorr"]
+    xticks_dist     = options["xticks_dist"] 
     dir_output = options["dir_output"]
     output = options["output"]
 
@@ -1532,7 +1544,7 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
     n_samples_obs = length(obs_timeline)
     # Find color and maxmin values along latitude for the lat-time map
     obs_on_fault, colorrange, color_exp = get_color(obs, color_thresh)
-    obs_timelats, lats = get_color_lontime_map(obs_on_fault,
+    obs_timelats, lats = get_color_lattime_map(obs_on_fault,
                             fault, n_samples_obs, n_lats_edges)
     max_obs_timelats = maximum(obs_timelats, dims=1)[1,:]
     n_lats = n_lats_edges - 1;
@@ -1567,7 +1579,7 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
         maximum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot])])
     
     # Find ticks for x ans y axes
-    xticks = collect(timeline2plot[1]-1:2:timeline2plot[end]+1)
+    xticks = collect(timeline2plot[1]-1:xticks_dist:timeline2plot[end]+1)
     xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
     
     lat_min = minimum(minimum(fault["lat"]));
@@ -1602,7 +1614,7 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
     ### TIME SERIES ###
     ###################
     axa = Axis(ga[1,1],
-               xlabel=L"Time ($yr$)",
+               xlabel=L"Time (yr)$$",
                ylabel=L"Norm. $R$ and $\dot{p}$",
                xlabelsize=24,
                ylabelsize=24,
@@ -1631,11 +1643,13 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
     ### MAP LATITUDE-TIME ###
     #########################
     axb = Axis(gb[1, 1],
-               ylabel=L"Latitude ($\degree$)",
+               ylabel=L"Latitude $$",
                ylabelsize=24,
                yticklabelsize=24,
                yticks=yticks_axb
                )
+    xlims!(axb, timeline2plot[1], timeline2plot[end] + Δt)
+    axb.ytickformat = yticks_axb -> string.(Int.(yticks_axb)) .* "°"
     hidexdecorations!(axb, grid = false)
 
     hm = heatmap!(axb,
@@ -1658,7 +1672,7 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
              limits=colorrange,
              colormap=:bwr,
              flipaxis=false,
-             label=L"%$(label_text) $(m^3/yr)$ $\times 10^{%$(color_exp)}$",
+             label=L"%$(label_text) (m$^3$/yr) $\times 10^{%$(color_exp)}$",
              vertical=false,
              labelsize=24,
              ticks=ticks,
@@ -1688,6 +1702,7 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
     Δt              = options["Δt"]
     t_max_crosscorr = options["t_max_crosscorr"]
     lat_split       = options["lat_split"] 
+    xticks_dist     = options["xticks_dist"] 
     dir_output      = options["dir_output"]
     output          = options["output"]
 
@@ -1712,7 +1727,7 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
     n_samples_obs = length(obs_timeline)
     # Find color and maxmin values along latitude for the lat-time map
     obs_on_fault, colorrange, color_exp = get_color(obs, color_thresh)
-    obs_timelats, lats = get_color_lontime_map(obs_on_fault,
+    obs_timelats, lats = get_color_lattime_map(obs_on_fault,
                             fault, n_samples_obs, n_lats_edges)
     # Split North and South observations
     ind_lats_north = lats .>= lat_split
@@ -1815,7 +1830,7 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
         )
     
     # Find ticks for x ans y axes
-    xticks = collect(timeline2plot[1]-1:2:timeline2plot[end]+1)
+    xticks = collect(timeline2plot[1]-1:xticks_dist:timeline2plot[end]+1)
     xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
     
     lat_min = minimum(minimum(fault["lat"]));
@@ -1849,15 +1864,17 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
     # rb = dot(x,y)/sqrt(dot(x,x)*dot(y,y)) # what you expect
     # [ra rb]
 
-    inds_crosscorr = range(-t_max_crosscorr,t_max_crosscorr,step=1)
-    r_north = crosscor(x_north,y_north,inds_crosscorr; demean=false)
-    r_south = crosscor(x_south,y_south,inds_crosscorr; demean=false)
-    r_north_max = maximum(r_north)
-    r_south_max = maximum(r_south)
-    ind_r_north_max = argmax(r_north)
-    ind_r_south_max = argmax(r_south)
-    n_days_max_crosscorr_north = inds_crosscorr[ind_r_north_max]
-    n_days_max_crosscorr_south = inds_crosscorr[ind_r_south_max]
+    if t_max_crosscorr > 0
+        inds_crosscorr = range(-t_max_crosscorr,t_max_crosscorr,step=1)
+        r_north = crosscor(x_north,y_north,inds_crosscorr; demean=false)
+        r_south = crosscor(x_south,y_south,inds_crosscorr; demean=false)
+        r_north_max = maximum(r_north)
+        r_south_max = maximum(r_south)
+        ind_r_north_max = argmax(r_north)
+        ind_r_south_max = argmax(r_south)
+        n_days_max_crosscorr_north = inds_crosscorr[ind_r_north_max]
+        n_days_max_crosscorr_south = inds_crosscorr[ind_r_south_max]
+    end
 
     ##############
     ### FIGURE ###
@@ -1926,19 +1943,21 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
         color=:red,
         )
     
-    dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.02
-    dy = (max_ylims_axa - min_ylims_axa)*0.17
-    Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-dy;
-            text="corr = "*string(round(r_north_max, sigdigits=2)), fontsize=16)
-    if abs(n_days_max_crosscorr_north) == 1
-        str_n_days_max_crosscorr_north = "Δt = " * 
-                        string(n_days_max_crosscorr_north)*" day"
-    else
-        str_n_days_max_crosscorr_north = "Δt = " * 
-                            string(n_days_max_crosscorr_north)*" days"
+    if t_max_crosscorr > 0
+        dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.02
+        dy = (max_ylims_axa - min_ylims_axa)*0.17
+        Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-dy;
+                text="corr = "*string(round(r_north_max, sigdigits=2)), fontsize=16)
+        if abs(n_days_max_crosscorr_north) == 1
+            str_n_days_max_crosscorr_north = "Δt = " * 
+                            string(n_days_max_crosscorr_north)*" day"
+        else
+            str_n_days_max_crosscorr_north = "Δt = " * 
+                                string(n_days_max_crosscorr_north)*" days"
+        end
+        Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-2*dy;
+                text=str_n_days_max_crosscorr_north, fontsize=16)
     end
-    Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-2*dy;
-            text=str_n_days_max_crosscorr_north, fontsize=16)
     
 
     axc = Axis(gc[1,1],
@@ -1981,28 +2000,32 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
         color=:red,
         )
     
-    dy = (max_ylims_axc - min_ylims_axc)*0.17
-    Makie.text!(axc, timeline2plot[1]+dx, max_ylims_axc-dy;
-            text="corr = "*string(round(r_south_max, sigdigits=2)), fontsize=16)
-    if abs(n_days_max_crosscorr_south) == 1
-        str_n_days_max_crosscorr_south = "Δt = " * 
-                        string(n_days_max_crosscorr_south)*" day"
-    else
-        str_n_days_max_crosscorr_south = "Δt = " * 
-                            string(n_days_max_crosscorr_south)*" days"
+    if t_max_crosscorr > 0
+        dy = (max_ylims_axc - min_ylims_axc)*0.17
+        Makie.text!(axc, timeline2plot[1]+dx, max_ylims_axc-dy;
+                text="corr = "*string(round(r_south_max, sigdigits=2)), fontsize=16)
+        if abs(n_days_max_crosscorr_south) == 1
+            str_n_days_max_crosscorr_south = "Δt = " * 
+                            string(n_days_max_crosscorr_south)*" day"
+        else
+            str_n_days_max_crosscorr_south = "Δt = " * 
+                                string(n_days_max_crosscorr_south)*" days"
+        end
+        Makie.text!(axc, timeline2plot[1]+dx, max_ylims_axc-2*dy;
+                text=str_n_days_max_crosscorr_south, fontsize=16)
     end
-    Makie.text!(axc, timeline2plot[1]+dx, max_ylims_axc-2*dy;
-            text=str_n_days_max_crosscorr_south, fontsize=16)
 
     #########################
     ### MAP LATITUDE-TIME ###
     #########################
     axb = Axis(gb[1, 1],
-               ylabel=L"Latitude ($\degree$)",
+               ylabel=L"Latitude $$",
                ylabelsize=24,
                yticklabelsize=24,
                yticks=yticks_axb
                )
+    xlims!(axb, timeline2plot[1], timeline2plot[end] + Δt)
+    axb.ytickformat = yticks_axb -> string.(Int.(yticks_axb)) .* "°"
     hidexdecorations!(axb, grid = false)
 
     hm = heatmap!(axb,
@@ -2051,5 +2074,9 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
     
     save(dir_output*output*"_ts_"*title*".png", fig)
     
-    return r_north, r_south
+    if t_max_crosscorr > 0
+        return r_north, r_south
+    else
+        return nothing, nothing
+    end
 end

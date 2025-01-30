@@ -220,24 +220,3 @@ function select_tremors(tremors_input, timeline, fault)
     
     return tremors_output
 end
-
-# function select_tremors_space(tremors, fault)
-#     n_patches = size(fault["xE"])[1]
-#     n_tremors = length(tremors["timeline"])
-#     polygon = SVector.(hcat(fault["xE"], fault["xE"][:,1]),
-#                        hcat(fault["yN"], fault["yN"][:,1]))
-#     points = vec(SVector.(tremors["xE"],tremors["yN"]))
-#     ind_ll_tremors = zeros(n_patches, n_tremors)
-
-
-#     # Construct a ParforProgressbar object
-#     progress = ProgressMeter.Progress(
-#         n_patches; desc = "Finding tremors in patches", enabled = true
-#         )
-#     Threads.@threads for j in 1:n_patches
-#         ind_ll_tremors[j,:] = [inpolygon(p, polygon[j,:];
-#                         in=true, on=false, out=false) for p in points]
-#         ProgressMeter.next!(progress)
-#     end
-#     return ind_ll_tremors
-# end

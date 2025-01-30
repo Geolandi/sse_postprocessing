@@ -180,7 +180,7 @@ for solution_date in solutions_dates
     flag_plot_fig_PSD              = true
     flag_plot_fig_selectparams     = true
     flag_plot_fig_map_lat_time     = true
-    flag_plot_fig_map_lat_time_ns  = true
+    flag_plot_fig_map_lat_time_ns  = false
 
     ##############
     ### MOVIES ###
@@ -218,10 +218,10 @@ for solution_date in solutions_dates
         options = read_options_fig_ts(options, dirs)
         options["plot"]["figures"]["ts"]["name"] = "ALBH"
         fig = plot_ts_gmt(X, options["plot"]["figures"]["ts"])
-        options["plot"]["figures"]["ts"]["name"] = "P161"
+        options["plot"]["figures"]["ts"]["name"] = "P160"
         fig = plot_ts_gmt(X, options["plot"]["figures"]["ts"])
-        options["plot"]["figures"]["ts"]["name"] = "PGC5"
-        fig = plot_ts_gmt(X, options["plot"]["figures"]["ts"])
+        # options["plot"]["figures"]["ts"]["name"] = "PGC5"
+        # fig = plot_ts_gmt(X, options["plot"]["figures"]["ts"])
     end
 
     # independent components
@@ -264,9 +264,13 @@ for solution_date in solutions_dates
         r_north, r_south = plot_map_lattimets_northsouth(slip_potency_rate,
             tremors, fault,
             options["plot"]["figures"]["map_ts"])
+        options = read_options_map_ts_northsouth_zoom(options, dirs)
+        r_north_zoom, r_south_zoom = plot_map_lattimets_northsouth(
+            slip_potency_rate, tremors, fault,
+            options["plot"]["figures"]["map_ts_zoom"])
     end
-# end
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 
 
@@ -296,3 +300,6 @@ for solution_date in solutions_dates
 # # Makie.lines!(ax, range(1,size(ICA["U"])[2],step=1), sk[3,:])
 # display(fig)
 >>>>>>> 4017893 (Update ENV path)
+=======
+# end
+>>>>>>> ce7f74f (Clean and remove local indices parts)

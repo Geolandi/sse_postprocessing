@@ -104,16 +104,6 @@ function read_options_tremors(options, fault)
     return options
 end
 
-##############################
-## DYNAMICAL LOCAL INDICES ###
-##############################
-function read_options_localindices(options)
-    options["local_indices"] = Dict()
-    options["local_indices"]["p"]   = 0.99
-    options["local_indices"]["est"] = :exp
-    return options
-end
-
 ##############
 ### MOVIES ###
 ##############
@@ -190,46 +180,6 @@ function read_options_movie_map_northsouth(options, dirs)
     return options
 end
 
-function read_options_movie_map_northsouth_dθ(options, dirs)
-    yyyy = parse(Int, options["solution_date"][1:4])
-    mm = parse(Int, options["solution_date"][6:7])
-    dd = parse(Int, options["solution_date"][9:10])
-
-    options["plot"]["video_dθ"] = Dict()
-
-    options["plot"]["video"]["map_video_dθ"]            = Dict()
-    options["plot"]["video"]["map_video_dθ"]["limits"]  = (-128.2, # lon_min
-                                                           -121.0, # lon_max
-                                                           39.0,   # lat_min
-                                                           51.0)   # lat_max
-    options["plot"]["video"]["map_video_dθ"]["figsize"] = (1000, 1000)
-    options["plot"]["video"]["map_video_dθ"]["proj"]    = "+proj=merc"
-    options["plot"]["video"]["map_video_dθ"]["title"]   = "Cascadia"
-    options["plot"]["video"]["map_video_dθ"]["show_progress"] = true
-    options["plot"]["video"]["map_video_dθ"]["framerate"]     = 1
-    options["plot"]["video"]["map_video_dθ"]["n_lats_edges"]  = 101
-    options["plot"]["video"]["map_video_dθ"]["Δt"]            = 1.0
-    options["plot"]["video"]["map_video_dθ"]["t0"] = 2024.5
-                                        #options["scen"]["first_epoch"]
-    options["plot"]["video"]["map_video_dθ"]["t1"] = Date(yyyy,mm,dd) + Day(30)
-    
-    options["plot"]["video"]["map_video_dθ"]["n_future_days"] = 60
-    options["plot"]["video"]["map_video_dθ"]["lat_split"] = 44
-    options["plot"]["video"]["map_video_dθ"]["dir_coastlines"] = 
-                                                    dirs["dir_coastlines"]
-    # if abs.(color) .< color_thresh_perc, set color to 0
-    options["plot"]["video"]["map_video_dθ"]["color_thresh_perc"] = 0 #0.15
-    options["plot"]["video"]["map_video_dθ"]["dir_output"] = 
-                                                        dirs["dir_results"] *
-                                                        "Slowquakes/real-time/"*
-                                                        dirs["dir_case"] * 
-                                                        options["solution_date"]
-    options["plot"]["video"]["map_video_dθ"]["output"] = 
-            "slip_potency_rate_map_ns_dθ"
-
-    return options
-end
-
 ###############
 ### FIGURES ###
 ###############
@@ -245,7 +195,7 @@ function read_options_fig_intro(options, dirs)
     options["plot"]["figures"]["intro"]["title"] = "Cascadia"
     options["plot"]["figures"]["intro"]["volcanoes"] = 
                                     options["scen"]["select"]["origin"][2:end,:]
-    options["plot"]["figures"]["intro"]["stns2plot"] = ["ALBH", "P161"]
+    options["plot"]["figures"]["intro"]["stns2plot"] = ["ALBH", "P160"]
     # Tectonic plate boundaries in json format downloaded from
     # https://github.com/fraxen/tectonicplates/tree/master?tab=readme-ov-file
     # (original files from http://peterbird.name/oldFTP/PB2002/)
@@ -362,6 +312,7 @@ function read_options_map_ts(options, dirs)
     options["plot"]["figures"]["map_ts"]["t_max_crosscorr"] = 14
     options["plot"]["figures"]["map_ts"]["t0"] = options["scen"]["first_epoch"]
         options["plot"]["figures"]["map_ts"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["plot"]["figures"]["map_ts"]["xticks_dist"] = 2
     options["plot"]["figures"]["map_ts"]["dir_output"] = dirs["dir_results"] *
                                                         "Slowquakes/real-time/"*
                                                         dirs["dir_case"] *
@@ -386,10 +337,38 @@ function read_options_map_ts_northsouth(options, dirs)
     options["plot"]["figures"]["map_ts"]["t0"] = options["scen"]["first_epoch"]
     options["plot"]["figures"]["map_ts"]["t1"] = Date(yyyy,mm,dd) + Day(2)
     options["plot"]["figures"]["map_ts"]["lat_split"] = 44
+    options["plot"]["figures"]["map_ts"]["xticks_dist"] = 2
     options["plot"]["figures"]["map_ts"]["dir_output"] = dirs["dir_results"] *
                                                         "Slowquakes/real-time/"*
                                                         dirs["dir_case"] *
                                                         options["solution_date"]
     options["plot"]["figures"]["map_ts"]["output"] = "slip_potency_rate_ns"
+    return options
+end
+
+# MAP LAT-TIME ZOOM
+function read_options_map_ts_northsouth_zoom(options, dirs)
+    yyyy = parse(Int, options["solution_date"][1:4])
+    mm = parse(Int, options["solution_date"][6:7])
+    dd = parse(Int, options["solution_date"][9:10])
+
+    options["plot"]["figures"]["map_ts_zoom"] = Dict()
+    options["plot"]["figures"]["map_ts_zoom"]["figsize"] = (1510, 900)
+    options["plot"]["figures"]["map_ts_zoom"]["title"]   = "Cascadia"
+    options["plot"]["figures"]["map_ts_zoom"]["n_lats_edges"]  = 101
+    options["plot"]["figures"]["map_ts_zoom"]["color_thresh_perc"] = 0.0
+    options["plot"]["figures"]["map_ts_zoom"]["Δt"] = 60/365.25
+    options["plot"]["figures"]["map_ts_zoom"]["t_max_crosscorr"] = 0
+    options["plot"]["figures"]["map_ts_zoom"]["t0"] = 2023.0
+    options["plot"]["figures"]["map_ts_zoom"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["plot"]["figures"]["map_ts_zoom"]["lat_split"] = 44
+    options["plot"]["figures"]["map_ts_zoom"]["xticks_dist"] = 1
+    options["plot"]["figures"]["map_ts_zoom"]["dir_output"] = 
+                                                        dirs["dir_results"] *
+                                                        "Slowquakes/real-time/"*
+                                                        dirs["dir_case"] *
+                                                        options["solution_date"]
+    options["plot"]["figures"]["map_ts_zoom"]["output"] = 
+                                                "slip_potency_rate_ns_zoom"
     return options
 end
