@@ -1615,7 +1615,7 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
     ###################
     axa = Axis(ga[1,1],
                xlabel=L"Time (yr)$$",
-               ylabel=L"Norm. $R$ and $\dot{p}$",
+               ylabel=L"Norm. $\dot{p}$",
                xlabelsize=24,
                ylabelsize=24,
                xticks=xticks,
