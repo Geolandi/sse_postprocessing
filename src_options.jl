@@ -98,7 +98,7 @@ function read_options_tremors(options, fault)
 
     options["tremors"] = Dict()
     options["tremors"]["t0"] = options["scen"]["first_epoch"]
-    options["tremors"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["tremors"]["t1"] = Date(yyyy,mm,dd) + Day(1)
     options["tremors"]["origin"] = fault["origin"]
 
     return options
@@ -127,7 +127,7 @@ function read_options_movie_map(options, dirs)
     options["plot"]["video"]["map_video"]["n_lats_edges"]  = 101
     options["plot"]["video"]["map_video"]["Δt"]            = 1.0
     options["plot"]["video"]["map_video"]["t0"] = options["scen"]["first_epoch"]
-    options["plot"]["video"]["map_video"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["plot"]["video"]["map_video"]["t1"] = Date(yyyy,mm,dd) + Day(1)
     
     options["plot"]["video"]["map_video"]["n_future_days"]  = 60
     options["plot"]["video"]["map_video"]["dir_coastlines"] = 
@@ -311,7 +311,7 @@ function read_options_map_ts(options, dirs)
     options["plot"]["figures"]["map_ts"]["Δt"] = 60/365.25
     options["plot"]["figures"]["map_ts"]["t_max_crosscorr"] = 14
     options["plot"]["figures"]["map_ts"]["t0"] = options["scen"]["first_epoch"]
-        options["plot"]["figures"]["map_ts"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+        options["plot"]["figures"]["map_ts"]["t1"] = Date(yyyy,mm,dd) + Day(1)
     options["plot"]["figures"]["map_ts"]["xticks_dist"] = 2
     options["plot"]["figures"]["map_ts"]["dir_output"] = dirs["dir_results"] *
                                                         "Slowquakes/real-time/"*
@@ -335,7 +335,7 @@ function read_options_map_ts_northsouth(options, dirs)
     options["plot"]["figures"]["map_ts"]["Δt"] = 60/365.25
     options["plot"]["figures"]["map_ts"]["t_max_crosscorr"] = 14
     options["plot"]["figures"]["map_ts"]["t0"] = options["scen"]["first_epoch"]
-    options["plot"]["figures"]["map_ts"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["plot"]["figures"]["map_ts"]["t1"] = Date(yyyy,mm,dd) + Day(1)
     options["plot"]["figures"]["map_ts"]["lat_split"] = 44
     options["plot"]["figures"]["map_ts"]["xticks_dist"] = 2
     options["plot"]["figures"]["map_ts"]["dir_output"] = dirs["dir_results"] *
@@ -360,7 +360,7 @@ function read_options_map_ts_northsouth_zoom(options, dirs)
     options["plot"]["figures"]["map_ts_zoom"]["Δt"] = 60/365.25
     options["plot"]["figures"]["map_ts_zoom"]["t_max_crosscorr"] = 0
     options["plot"]["figures"]["map_ts_zoom"]["t0"] = 2023.0
-    options["plot"]["figures"]["map_ts_zoom"]["t1"] = Date(yyyy,mm,dd) + Day(2)
+    options["plot"]["figures"]["map_ts_zoom"]["t1"] = Date(yyyy,mm,dd) + Day(1)
     options["plot"]["figures"]["map_ts_zoom"]["lat_split"] = 44
     options["plot"]["figures"]["map_ts_zoom"]["xticks_dist"] = 1
     options["plot"]["figures"]["map_ts_zoom"]["dir_output"] = 
