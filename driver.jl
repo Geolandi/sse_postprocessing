@@ -110,7 +110,7 @@ n_samples_smooth = length(timeline_smooth)
 ICA_smooth["var_V"] = ICA["var_V"][end-n_samples_smooth+1:end,:];
 ICA_smooth["timeline"] = timeline_smooth;
 # create slip model with smooth components
-slip_smooth = create_model(m, Cm, ICA_smooth, fault, options, ind_comps)
+# slip_smooth = create_model(m, Cm, ICA_smooth, fault, options, ind_comps)
 
 # set time derivative ICA dictionary
 ICA_dot = copy(ICA);
@@ -119,7 +119,7 @@ n_samples_dot = length(timeline_dot)
 ICA_dot["var_V"] = ICA["var_V"][end-n_samples_dot+1:end,:];
 ICA_dot["timeline"] = timeline_dot;
 # create slip rate model with rate of smoothed components
-slip_rate = create_model(m, Cm, ICA_dot, fault, options, ind_comps)
+# slip_rate = create_model(m, Cm, ICA_dot, fault, options, ind_comps)
 
 #########################
 ### SLIP POTENCY RATE ###
