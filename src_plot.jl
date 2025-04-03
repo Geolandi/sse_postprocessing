@@ -12,8 +12,13 @@ function plot_intro_map_gmt(X, fault, options)
     # proj = options["proj"]
     title = options["title"]
     ll_volcanoes = options["volcanoes"]
+    stn_legend = options["stn_legend"]
+    stn_example_legend = options["stn_example_legend"]
+    ll_volcanoes_legend = options["ll_volcanoes_legend"]
     boundaries_file = options["tect_boundaries"]
     stns2plot = options["stns2plot"]
+    dx_stns2plot = options["dx_stns2plot"]
+    dy_stns2plot = options["dy_stns2plot"]
     dir_output = options["dir_output"]
     output = options["output"]
     
@@ -23,8 +28,10 @@ function plot_intro_map_gmt(X, fault, options)
     
     n_stns2plot = length(stns2plot)
     llh_stns = zeros(n_stns2plot,3)
+    names = []
     for i=1:n_stns2plot
         name = stns2plot[i]
+        names = vcat(names, name)
         inds = [n[1:4] for n in X["name"]] .== name
         llh_stns[i,:] = X["llh"][inds[:],:][1,:]
     end
@@ -155,7 +162,7 @@ function plot_intro_map_gmt(X, fault, options)
             markeredgecolor=:black,
             show=false,
             )
-
+    
     GMT.scatter!(llh_stns[:,1], llh_stns[:,2],
             marker=:diamond,
             color="232/56/137",
@@ -163,6 +170,57 @@ function plot_intro_map_gmt(X, fault, options)
             markeredgecolor=:black,
             show=false
             )
+        
+    
+    for (k,name) in enumerate(names)
+        GMT.text!([name],
+                    x=llh_stns[k,1]+dx_stns2plot[k],
+                    y=llh_stns[k,2]+dy_stns2plot[k],
+                    par=((FONT_ANNOT_PRIMARY="12p,Helvetica-Bold,232/56/137"),
+                    (FONT_LABEL="12p,Helvetica-Bold,232/56/137"),
+                    # (outline="1p,black"),
+                    ),
+                    justify=:LB,
+                    show=false)
+    end
+
+    GMT.scatter!(stn_legend[:,1],stn_legend[:,2],
+            color="0/84/147",
+            markersize=0.3,
+            markeredgecolor=:black,
+            show=false,
+            )
+    GMT.text!("GNSS stations", x=stn_legend[1]+0.25, y=stn_legend[2]-0.07,
+                par=((FONT_ANNOT_PRIMARY="12p,Helvetica,0/84/147"),
+                (FONT_LABEL="12p,Helvetica,0/84/147"),),
+                justify=:LB, show=false)
+
+    GMT.scatter!(stn_example_legend[:,1],stn_example_legend[:,2],
+            marker=:diamond,
+            color="232/56/137",
+            markersize=0.5,
+            markeredgecolor=:black,
+            show=false,
+            )
+    GMT.text!("Example stations", x=stn_example_legend[1]+0.25,
+                y=stn_example_legend[2]-0.07,
+                par=((FONT_ANNOT_PRIMARY="12p,Helvetica,232/56/137"),
+                (FONT_LABEL="12p,Helvetica,232/56/137"),),
+                justify=:LB, show=false)
+
+    GMT.scatter!(ll_volcanoes_legend[:,1],ll_volcanoes_legend[:,2],
+            color="255/165/0",
+            #color="30/150/65",
+            marker=:triangle,
+            markersize=0.3,
+            markeredgecolor=:black,
+            show=false,
+            )
+    GMT.text!("Volcanoes", x=ll_volcanoes_legend[1]+0.25,
+                y=ll_volcanoes_legend[2]-0.07,
+                par=((FONT_ANNOT_PRIMARY="12p,Helvetica,255/165/0"),
+                (FONT_LABEL="12p,Helvetica,255/165/0"),),
+                justify=:LB, show=false)
 
     GMT.basemap!(
             inset = (; anchor = :TR, size=(4,2), offset = (-0.1,-0.1),
@@ -203,6 +261,16 @@ end
 function plot_ts_gmt(X, options)
     figsize = options["figsize"]
     name = options["name"]
+    annot_y_e = options["annot_y_e"]
+    annot_y_n = options["annot_y_n"]
+    annot_y_u = options["annot_y_u"]
+    ticks_y_e = options["ticks_y_e"]
+    ticks_y_n = options["ticks_y_n"]
+    ticks_y_u = options["ticks_y_u"]
+    ms = options["ms"]
+    ml = options["ml"]
+    p = options["p"]
+    alpha = options["alpha"]
     dir_output = options["dir_output"]
 
     if ~isdir(dir_output)
@@ -224,15 +292,25 @@ function plot_ts_gmt(X, options)
     var_n = var_enu[2,:]
     var_u = var_enu[3,:]
     
-    Ae = maximum(e) - minimum(e)
-    ye_min = minimum(e) - 0.1*Ae
-    ye_max = maximum(e) + 0.1*Ae
-    An = maximum(n) - minimum(n)
-    yn_min = minimum(n) - 0.1*An
-    yn_max = maximum(n) + 0.1*An
-    Au = maximum(u) - minimum(u)
-    yu_min = minimum(u) - 0.1*Au
-    yu_max = maximum(u) + 0.1*Au
+    ind_data = findall(isfinite, var_e)
+    ind_missing = findall(!isfinite, var_e)
+
+    e[ind_missing] .= NaN
+    n[ind_missing] .= NaN
+    u[ind_missing] .= NaN
+
+    Ae = maximum(e[ind_data].+sqrt.(var_e[ind_data])) -
+            minimum(e[ind_data].-sqrt.(var_e[ind_data]))
+    ye_min = minimum(e[ind_data].-sqrt.(var_e[ind_data])) - 0.1*Ae
+    ye_max = maximum(e[ind_data].+sqrt.(var_e[ind_data])) + 0.1*Ae
+    An = maximum(n[ind_data].+sqrt.(var_n[ind_data])) -
+            minimum(n[ind_data].-sqrt.(var_n[ind_data]))
+    yn_min = minimum(n[ind_data].-sqrt.(var_n[ind_data])) - 0.1*An
+    yn_max = maximum(n[ind_data].+sqrt.(var_n[ind_data])) + 0.1*An
+    Au = maximum(u[ind_data].+sqrt.(var_u[ind_data])) -
+            minimum(u[ind_data].-sqrt.(var_u[ind_data]))
+    yu_min = minimum(u[ind_data].-sqrt.(var_u[ind_data])) - 0.1*Au
+    yu_max = maximum(u[ind_data].+sqrt.(var_u[ind_data])) + 0.1*Au
 
     e_vars = [timeline, e, zeros(n_samples), sqrt.(var_e)]
     n_vars = [timeline, n, zeros(n_samples), sqrt.(var_n)]
@@ -244,51 +322,51 @@ function plot_ts_gmt(X, options)
             savefig=dir_output * name * ".png")
         GMT.basemap(region=(t0,t1,ye_min,ye_max),
                     xaxis=(annot=5,ticks=1),
-                    yaxis=(annot=5,ticks=1),
+                    yaxis=(annot=annot_y_e,ticks=ticks_y_e),
                     par=(:MAP_FRAME_TYPE,"fancy+"),
                     axes=:WsNe,
                     ylabel="East (mm)",
                     panel=(1,1)
                     )
-        GMT.plot(e_vars,
-                error_bars=(x=:x, pen=1),
+        GMT.plot(e_vars, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
                 )
         GMT.scatter(timeline, e,
-                color=:red,
-                markersize=0.02
+                color=:black,
+                markersize=ms*3
                 )
 
         GMT.basemap(region=(t0,t1,yn_min,yn_max),
                 xaxis=(annot=5,ticks=1),
-                yaxis=(annot=5,ticks=1),
+                yaxis=(annot=annot_y_n,ticks=ticks_y_n),
                 par=(:MAP_FRAME_TYPE,"fancy+"),
                 axes=:Wsne,
                 ylabel="North (mm)",
                 panel=(2,1)
                 )
-        GMT.plot(n_vars,
-                error_bars=(x=:x, pen=1),
+        GMT.plot(n_vars, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
                 )
         GMT.scatter(timeline, n,
-                color=:red,
-                markersize=0.02
+                color=:black,
+                markersize=ms*3
                 )
 
         GMT.basemap(region=(t0,t1,yu_min,yu_max),
                 xaxis=(annot=5,ticks=1),
-                yaxis=(annot=5,ticks=1),
+                yaxis=(annot=annot_y_u,ticks=ticks_y_u),
                 par=(:MAP_FRAME_TYPE,"fancy+"),
                 axes=:WSne,
                 xlabel="Time (yr)",
                 ylabel="Vertical (mm)",
                 panel=(3,1)
                 )
-        GMT.plot(u_vars,
-                error_bars=(x=:x, pen=1),
+        GMT.plot(u_vars, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
                 )
         GMT.scatter(timeline, u,
-                color=:red,
-                markersize=0.02
+                color=:black,
+                markersize=ms*3
                 )
     subplot()
     
@@ -299,6 +377,356 @@ function plot_ts_gmt(X, options)
     return nothing
 end
 
+function plot_2ts_gmt(X, options)
+    figsize = options["figsize"]
+    names = options["names"]
+    annot_y_e = options["annot_y_e"]
+    annot_y_n = options["annot_y_n"]
+    annot_y_u = options["annot_y_u"]
+    ticks_y_e = options["ticks_y_e"]
+    ticks_y_n = options["ticks_y_n"]
+    ticks_y_u = options["ticks_y_u"]
+    ms = options["ms"]
+    ml = options["ml"]
+    p = options["p"]
+    alpha = options["alpha"]
+    dir_output = options["dir_output"]
+
+    n_names = length(names)
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+    
+    timeline = X["timeline"][1,:]
+    t0 = timeline[1]
+    t1 = timeline[end]
+    n_samples = length(timeline)
+
+    ye_min = zeros(n_names)
+    ye_max = zeros(n_names)
+    yn_min = zeros(n_names)
+    yn_max = zeros(n_names)
+    yu_min = zeros(n_names)
+    yu_max = zeros(n_names)
+    e_vars = Dict()
+    n_vars = Dict()
+    u_vars = Dict()
+    for (k,name) in enumerate(names)
+        inds = [n[1:4] for n in X["name"]] .== name
+        
+        enu = X["ts"][inds[:],:]
+        var_enu = X["var_ts"][inds[:],:]
+        e = enu[1,:]
+        n = enu[2,:]
+        u = enu[3,:]
+        var_e = var_enu[1,:]
+        var_n = var_enu[2,:]
+        var_u = var_enu[3,:]
+        
+        ind_data = findall(isfinite, var_e)
+        ind_missing = findall(!isfinite, var_e)
+        
+        e[ind_missing] .= NaN
+        n[ind_missing] .= NaN
+        u[ind_missing] .= NaN
+
+        Ae = maximum(e[ind_data].+sqrt.(var_e[ind_data])) -
+                minimum(e[ind_data].-sqrt.(var_e[ind_data]))
+        ye_min[k] = minimum(e[ind_data].-sqrt.(var_e[ind_data])) - 0.1*Ae
+        ye_max[k] = maximum(e[ind_data].+sqrt.(var_e[ind_data])) + 0.1*Ae
+        An = maximum(n[ind_data].+sqrt.(var_n[ind_data])) -
+                minimum(n[ind_data].-sqrt.(var_n[ind_data]))
+        yn_min[k] = minimum(n[ind_data].-sqrt.(var_n[ind_data])) - 0.1*An
+        yn_max[k] = maximum(n[ind_data].+sqrt.(var_n[ind_data])) + 0.1*An
+        Au = maximum(u[ind_data].+sqrt.(var_u[ind_data])) -
+                minimum(u[ind_data].-sqrt.(var_u[ind_data]))
+        yu_min[k] = minimum(u[ind_data].-sqrt.(var_u[ind_data])) - 0.1*Au
+        yu_max[k] = maximum(u[ind_data].+sqrt.(var_u[ind_data])) + 0.1*Au
+
+        e_vars[name] = [timeline, e, zeros(n_samples), sqrt.(var_e)]
+        n_vars[name] = [timeline, n, zeros(n_samples), sqrt.(var_n)]
+        u_vars[name] = [timeline, u, zeros(n_samples), sqrt.(var_u)]
+    end
+
+    axes_tc = [:Wsne :wsnE]
+    axes_b  = [:WSne :wSnE]
+
+    subplot(grid=(3,2), dims=(size=(30,15), frac=((1,1), (1,1,1)) ),
+            row_axes=(left=false),
+            col_axes=(bott=false),
+            margins=0, autolabel=true,
+            savefig=dir_output * "Example_stations.png")
+        for i = 1:2
+            GMT.basemap(region=(t0,t1,ye_min[i],ye_max[i]),
+                        xaxis=(annot=5,ticks=1),
+                        yaxis=(annot=annot_y_e[i],ticks=ticks_y_e[i]),
+                        par=(:MAP_FRAME_TYPE,"fancy+"),
+                        axes=axes_tc[i],
+                        ylabel="East (mm)",
+                        title=names[i],
+                        panel=(1,i)
+                        )
+            GMT.plot(e_vars[names[i]], marker=:dot, ms=ms, color=:black, ml=ml,
+                    alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                    )
+            GMT.scatter(e_vars[names[i]][1], e_vars[names[i]][2],
+                    color="193/43/43",
+                    markersize=ms*3
+                    )
+
+            GMT.basemap(region=(t0,t1,yn_min[i],yn_max[i]),
+                    xaxis=(annot=5,ticks=1),
+                    yaxis=(annot=annot_y_n[i],ticks=ticks_y_n[i]),
+                    par=(:MAP_FRAME_TYPE,"fancy+"),
+                    axes=axes_tc[i],
+                    ylabel="North (mm)",
+                    panel=(2,i)
+                    )
+            GMT.plot(n_vars[names[i]], marker=:dot, ms=ms, color=:black, ml=ml,
+                    alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                    )
+            GMT.scatter(n_vars[names[i]][1], n_vars[names[i]][2],
+                    color="193/43/43",
+                    markersize=ms*3
+                    )
+
+            GMT.basemap(region=(t0,t1,yu_min[i],yu_max[i]),
+                    xaxis=(annot=5,ticks=1),
+                    yaxis=(annot=annot_y_u[i],ticks=ticks_y_u[i]),
+                    par=(:MAP_FRAME_TYPE,"fancy+"),
+                    axes=axes_b[i],
+                    xlabel="Time (yr)",
+                    ylabel="Vertical (mm)",
+                    panel=(3,i)
+                    )
+            GMT.plot(u_vars[names[i]], marker=:dot, ms=ms, color=:black, ml=ml,
+                    alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                    )
+            GMT.scatter(u_vars[names[i]][1], u_vars[names[i]][2],
+                    color="193/43/43",
+                    markersize=ms*3
+                    )
+        end
+    subplot()
+    
+    if isfile("./gmt.history")
+        rm("./gmt.history")
+    end
+
+    return nothing
+end
+
+function plot_ts_fit_gmt(X, X̂, options)
+    figsize = options["figsize"]
+    name = options["name"]
+    annot_y_e = options["annot_y_e"]
+    annot_y_n = options["annot_y_n"]
+    annot_y_u = options["annot_y_u"]
+    ticks_y_e = options["ticks_y_e"]
+    ticks_y_n = options["ticks_y_n"]
+    ticks_y_u = options["ticks_y_u"]
+    comps_selected = options["comps_selected"]
+    ms = options["ms"]
+    ml = options["ml"]
+    p = options["p"]
+    alpha = options["alpha"]
+    dir_output = options["dir_output"]
+
+    ind_comps = comps_selected["ind_comps"]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+    
+    timeline = X["timeline"][1,:]
+    t0 = timeline[1]
+    t1 = timeline[end]
+    n_samples = length(timeline)
+
+    inds = [n[1:4] for n in X["name"]] .== name
+    enu = X["ts"][inds[:],:]
+    enu_model = X̂["ts"][inds[:],:]
+    var_enu = X["var_ts"][inds[:],:]
+    var_enu_model = X̂["var_ts"][inds[:],:]
+    e = enu[1,:]
+    n = enu[2,:]
+    u = enu[3,:]
+    ê = enu_model[1,:]
+    n̂ = enu_model[2,:]
+    û = enu_model[3,:]
+    var_e = var_enu[1,:]
+    var_n = var_enu[2,:]
+    var_u = var_enu[3,:]
+    var_ê = var_enu_model[1,:]
+    var_n̂ = var_enu_model[2,:]
+    var_û = var_enu_model[3,:]
+    
+    Ae = maximum(e.+sqrt.(var_e)) - minimum(e.-sqrt.(var_e))
+    Aê = maximum(ê.+sqrt.(var_ê)) - minimum(ê.-sqrt.(var_ê))
+    ye_min = minimum([minimum(e.-sqrt.(var_e)),minimum(ê.-sqrt.(var_ê))]) -
+            0.1*maximum([Ae,Aê])
+    ye_max = maximum([maximum(e.+sqrt.(var_e)),maximum(ê.+sqrt.(var_ê))]) +
+            0.1*maximum([Ae,Aê])
+    An = maximum(n.+sqrt.(var_n)) - minimum(n.-sqrt.(var_n))
+    An̂ = maximum(n̂.+sqrt.(var_n̂)) - minimum(n̂.-sqrt.(var_n̂))
+    yn_min = minimum([minimum(n.+sqrt.(var_n)),minimum(n̂.+sqrt.(var_n̂))]) -
+            0.1*maximum([An,An̂])
+    yn_max = maximum([maximum(n.+sqrt.(var_n)),maximum(n̂.+sqrt.(var_n̂))]) +
+            0.1*maximum([An,An̂])
+    Au = maximum(u.+sqrt.(var_u)) - minimum(u.-sqrt.(var_u))
+    Aû = maximum(û.+sqrt.(var_û)) - minimum(û.-sqrt.(var_û))
+    yu_min = minimum([minimum(u.+sqrt.(var_u)), minimum(û.+sqrt.(var_û))]) -
+            0.1*maximum([Au,Aû])
+    yu_max = maximum([maximum(u.+sqrt.(var_u)), maximum(û.+sqrt.(var_û))]) +
+            0.1*maximum([Au,Aû])
+
+    e_vars = hcat(timeline, e, zeros(n_samples), sqrt.(var_e))
+    n_vars = hcat(timeline, n, zeros(n_samples), sqrt.(var_n))
+    u_vars = hcat(timeline, u, zeros(n_samples), sqrt.(var_u))
+    ê_vars = hcat(timeline, ê, zeros(n_samples), sqrt.(var_ê))
+    n̂_vars = hcat(timeline, n̂, zeros(n_samples), sqrt.(var_n̂))
+    û_vars = hcat(timeline, û, zeros(n_samples), sqrt.(var_û))
+
+    e_vars_residual = hcat(timeline, e.-ê, zeros(n_samples),
+                            sqrt.(sqrt.(var_e).+sqrt.(var_ê)))
+    n_vars_residual = hcat(timeline, n.-n̂, zeros(n_samples),
+                            sqrt.(sqrt.(var_n).+sqrt.(var_n̂)))
+    u_vars_residual = hcat(timeline, u.-û, zeros(n_samples),
+                            sqrt.(sqrt.(var_u).+sqrt.(var_û)))
+
+    subplot(grid=(3,2), dims=(size=(30,15), frac=((1,1), (1,1,1)) ),
+            title=name, row_axes=(left=false), col_axes=(bott=false),
+            margins=0, autolabel=false,
+            savefig=dir_output * name * "_fit.png")
+        GMT.basemap(region=(t0,t1,ye_min,ye_max),
+                    xaxis=(annot=5,ticks=1),
+                    yaxis=(annot=annot_y_e,ticks=ticks_y_e),
+                    par=(:MAP_FRAME_TYPE,"fancy+"),
+                    axes=:WsNe,
+                    ylabel="East (mm)",
+                    panel=(1,1)
+                    )
+        GMT.plot(e_vars, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                )
+        # GMT.plot(ê_vars, marker=:dot, ms=ms, ml=ml,
+        #         alpha=alpha, error_bars=(x=:x, y=:y, pen=(p,"255/165/0"))
+        #         )
+        GMT.scatter(timeline, e,
+                color=:black,
+                markersize=ms*3
+                )
+        GMT.scatter(timeline, ê,
+                color="255/165/0",
+                markersize=ms*3
+                )
+
+        GMT.basemap(region=(t0,t1,ye_min,ye_max),
+                    xaxis=(annot=5,ticks=1),
+                    yaxis=(annot=annot_y_e,ticks=ticks_y_e),
+                    par=(:MAP_FRAME_TYPE,"fancy+"),
+                    axes=:wsNE,
+                    ylabel="East (mm)",
+                    panel=(1,2)
+                    )
+        GMT.plot(e_vars_residual, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                )
+        GMT.scatter(timeline, e.-ê,
+                color=:black,
+                markersize=ms*3
+                )
+        
+        GMT.basemap(region=(t0,t1,yn_min,yn_max),
+                xaxis=(annot=5,ticks=1),
+                yaxis=(annot=annot_y_n,ticks=ticks_y_n),
+                par=(:MAP_FRAME_TYPE,"fancy+"),
+                axes=:Wsne,
+                ylabel="North (mm)",
+                panel=(2,1)
+                )
+        GMT.plot(n_vars, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                )
+        # GMT.plot(n̂_vars, marker=:dot, ms=ms, ml=ml,
+        #         alpha=alpha, error_bars=(x=:x, y=:y, pen=(p,"255/165/0"))
+        #         )
+        GMT.scatter(timeline, n,
+                color=:black,
+                markersize=ms*3
+                )
+        GMT.scatter(timeline, n̂,
+                color="255/165/0",
+                markersize=ms*3
+                )
+
+
+        GMT.basemap(region=(t0,t1,yn_min,yn_max),
+                    xaxis=(annot=5,ticks=1),
+                    yaxis=(annot=annot_y_n,ticks=ticks_y_n),
+                    par=(:MAP_FRAME_TYPE,"fancy+"),
+                    axes=:wsnE,
+                    ylabel="North (mm)",
+                    panel=(2,2)
+                    )
+        GMT.plot(n_vars_residual, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                )
+        GMT.scatter(timeline, n.-n̂,
+                color=:black,
+                markersize=ms*3
+                )
+
+        
+        GMT.basemap(region=(t0,t1,yu_min,yu_max),
+                xaxis=(annot=5,ticks=1),
+                yaxis=(annot=annot_y_u,ticks=ticks_y_u),
+                par=(:MAP_FRAME_TYPE,"fancy+"),
+                axes=:WSne,
+                xlabel="Time (yr)",
+                ylabel="Vertical (mm)",
+                panel=(3,1)
+                )
+        GMT.plot(u_vars, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                )
+        # GMT.plot(û_vars, marker=:dot, ms=ms, ml=ml,
+        #         alpha=alpha, error_bars=(x=:x, y=:y, pen=(p,"255/165/0"))
+        #         )
+        GMT.scatter(timeline, u,
+                color=:black,
+                markersize=ms*3
+                )
+        GMT.scatter(timeline, û,
+                color="255/165/0",
+                markersize=ms*3
+                )
+
+        GMT.basemap(region=(t0,t1,yu_min,yu_max),
+                    xaxis=(annot=5,ticks=1),
+                    yaxis=(annot=annot_y_u,ticks=ticks_y_u),
+                    par=(:MAP_FRAME_TYPE,"fancy+"),
+                    axes=:wSnE,
+                    xlabel="Time (yr)",
+                    ylabel="Vertical (mm)",
+                    panel=(3,2)
+                    )
+        GMT.plot(u_vars_residual, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
+                )
+        GMT.scatter(timeline, u.-û,
+                color=:black,
+                markersize=ms*3
+                )
+    subplot()
+    
+    if isfile("./gmt.history")
+        rm("./gmt.history")
+    end
+
+    return nothing
+end
 
 function plot_comp_gmt(decomp, options)
     figsize = options["figsize"]
@@ -440,6 +868,229 @@ function plot_comp_gmt(decomp, options)
     return nothing
 end
 
+function plot_comp_fit_gmt(decomp, model, options)
+    figsize = options["figsize"]
+    limits = options["limits"]
+    xy_legend = options["ll_legend"]
+    xy_legend_model = options["ll_legend_model"]
+    proj = options["proj"]
+    title = options["title"]
+    show_progress = options["show_progress"]
+    comps_selected = options["comps_selected"]
+    dir_output = options["dir_output"]
+    output = options["output"]
+
+    ind_comps = comps_selected["ind_comps"]
+    n_comps = size(ind_comps)[1]
+
+    if ~isdir(dir_output)
+        mkdir(dir_output)
+    end
+    
+    x = decomp["llh"][1:3:end,1]
+    y = decomp["llh"][1:3:end,2]
+    append!(x, xy_legend[1])
+    append!(y, xy_legend[2])
+
+    x̂ = decomp["llh"][1:3:end,1]
+    ŷ = decomp["llh"][1:3:end,2]
+    append!(x̂, xy_legend_model[1])
+    append!(ŷ, xy_legend_model[2])
+    
+    
+    U = decomp["U"][:,ind_comps]
+    U_var = decomp["var_U"][:,ind_comps]
+    Û = model["U"]
+    Û_var = zeros(size(Û))
+    for i=1:n_comps
+        Û_var[:,i] = diag(model["var_U"][i])
+    end
+    S = decomp["S"][ind_comps,ind_comps]
+    V = decomp["V"][:,ind_comps]
+    V_var = decomp["var_V"]
+    min_V = minimum(V, dims=1)
+    max_V = maximum(V, dims=1)
+
+    norm_facts = max_V .- min_V
+    
+    spat_maps = (U * S) .* norm_facts
+    spat_maps_model = (Û * S) .* norm_facts
+    
+    spat_maps_err = (sqrt.(U_var) * S) .* norm_facts
+    spat_maps_model_err = (sqrt.(Û_var) * S) .* norm_facts
+
+    progress = ProgressMeter.Progress(
+        n_comps; desc = "Plotting components: ", enabled = show_progress
+    )
+
+    for i=1:n_comps
+        
+        spat_map = spat_maps[:,i]
+        spat_map_err = spat_maps_err[:,i]
+        
+        spat_map_model = spat_maps_model[:,i]
+        spat_map_model_err = spat_maps_model_err[:,i]
+
+        u = spat_map[1:3:end]
+        v = spat_map[2:3:end]
+        w = spat_map[3:3:end]
+        u_legend = Integer(round(maximum(sqrt.(u.^2 + v.^2)) / 2))
+        append!(u, u_legend)
+        append!(v, 0)
+        
+        # keep the same vector size for the legend of the model
+        û = spat_map_model[1:3:end]
+        v̂ = spat_map_model[2:3:end]
+        ŵ = spat_map_model[3:3:end]
+        append!(û, u_legend)
+        append!(v̂, 0)
+
+        u_residual = u.-û
+        u_residual[end] = u_legend
+        v_residual = v.-v̂
+        v_residual[end] = 0
+        w_residual = w.-ŵ
+
+
+        n_stn = length(w)
+        err_u = zeros(n_stn+1)
+        err_v = zeros(n_stn+1)
+        err_u[1:end-1] = spat_map_err[1:3:end]
+        err_v[1:end-1] = spat_map_err[2:3:end]
+        err_û = zeros(n_stn+1)
+        err_v̂ = zeros(n_stn+1)
+        err_û[1:end-1] = spat_map_model_err[1:3:end]
+        err_v̂[1:end-1] = spat_map_model_err[2:3:end]
+        err_u_residual = zeros(n_stn+1)
+        err_v_residual = zeros(n_stn+1)
+        err_u_residual = sqrt.(err_u.^2 .+ err_û.^2)
+        err_v_residual = sqrt.(err_v.^2 .+ err_v̂.^2)
+        
+        subplot(grid=(1,2), dims=(size=(14.2,10.5), frac=((1,), (1,)) ),
+            title=title*string(ind_comps[i]), row_axes=(left=false),
+            col_axes=(bott=false), margins=0, autolabel=true,
+            savefig=dir_output*output*string(ind_comps[i])*".png",
+            par=((FONT_HEADING="24p,Helvetica,black"),)
+            )
+            GMT.basemap(region=limits,
+                    proj=:Mercator,
+                    axes=:WSne,
+                    xaxis=(annot=2,ticks=1),
+                    yaxis=(annot=2,ticks=1),
+                    par=(:MAP_FRAME_TYPE,"fancy+"),
+                    panel=(1,1)
+                    )
+            GMT.coast(shorelines="1/0.5p,black",
+                    resolution=:i,
+                    )
+            C = makecpt(cmap=:polar,
+                        range=(-maximum(abs.(spat_map)),
+                                maximum(abs.(spat_map))));
+            GMT.scatter(x[1:end-1],y[1:end-1],
+                zcolor=w,              # Assign color to each symbol
+                size=0.25,                  # The symbl sizes
+                markeredgecolor=:black,
+                cmap=C
+                )
+            
+            GMT.scatter(x̂[1:end-1],ŷ[1:end-1],
+                zcolor=ŵ,              # Assign color to each symbol
+                size=0.15,                  # The symbl sizes
+                markeredgecolor=:black,
+                cmap=C
+                )
+
+            GMT.colorbar!(pos=(justify=:BL, offset=(-6.7,-8.5), size=(4,0.4)),
+                        frame=(xlabel="Vertical (mm)",),
+                        xaxis=(annot=:auto, ticks=:auto),
+                        par=((FONT_ANNOT_PRIMARY="16p,Helvetica,black"),
+                                (FONT_LABEL="16p,Helvetica,black"),),
+                        cmap=C,
+                        )
+                        
+            velo_vecs = hcat(x, y, u, v, err_u, err_v, zeros(n_stn+1))
+            GMT.velo(mat2ds(velo_vecs, repeat([" "], n_stn+1)),
+                    pen=(0.6,:black),
+                    Se="0.2/0.39/18",
+                    #arrow="0.3c+p1p+e+gblack+n",
+                    arrow="0.3c+p1p+e+gblack",
+                    region=limits,
+                    )
+            GMT.text([x[end]+0.75 y[end]+0.3], text="Horizontal IC",
+                par=((FONT_ANNOT_PRIMARY="8p,Helvetica,black"),
+                (FONT_LABEL="8p,Helvetica,black"),), justify=:CB)
+            GMT.text([x[end]+0.75 y[end]-1.3], text=string(u_legend)*" mm",
+                par=((FONT_ANNOT_PRIMARY="8p,Helvetica,black"),
+                (FONT_LABEL="8p,Helvetica,black"),), justify=:CB)
+
+
+            velo_vecs_model = hcat(x̂, ŷ, û, v̂, err_û, err_v̂, zeros(n_stn+1))
+            GMT.velo(mat2ds(velo_vecs_model, repeat([" "], n_stn+1)),
+                    pen=(0.6,:red),
+                    Se="0.2/0.39/18",
+                    arrow="0.3c+p1p,red+e+gred",
+                    region=limits,
+                    )
+            GMT.text([x̂[end]+0.75 ŷ[end]+0.3], text="Horizontal model",
+                par=((FONT_ANNOT_PRIMARY="8p,Helvetica,red"),
+                (FONT_LABEL="8p,Helvetica,red"),), justify=:CB)
+            
+            GMT.basemap(region=limits,
+                    proj=:Mercator,
+                    axes=:wSne,
+                    xaxis=(annot=2,ticks=1),
+                    yaxis=(annot=2,ticks=1),
+                    par=(:MAP_FRAME_TYPE,"fancy+"),
+                    panel=(1,2)
+                    )
+            GMT.coast(shorelines="1/0.5p,black",
+                    resolution=:i,
+                    )
+            # C_residual = makecpt(cmap=:polar,
+            #             range=(-maximum(abs.(spat_map.-spat_map_model)),
+            #                     maximum(abs.(spat_map.-spat_map_model))));
+            GMT.scatter(x[1:end-1],y[1:end-1],
+                zcolor=w_residual,              # Assign color to each symbol
+                size=0.25,                  # The symbl sizes
+                markeredgecolor=:black,
+                cmap=C
+                )
+            
+            GMT.colorbar!(pos=(justify=:BL, offset=(-6.7,-8.5), size=(4,0.4)),
+                        frame=(xlabel="Vertical residual (mm)",),
+                        xaxis=(annot=:auto, ticks=:auto),
+                        par=((FONT_ANNOT_PRIMARY="16p,Helvetica,black"),
+                                (FONT_LABEL="16p,Helvetica,black"),),
+                        cmap=C,
+                        )
+                        
+            velo_vecs_residual = hcat(
+                x, y, u_residual, v_residual, err_u_residual, err_v_residual,
+                zeros(n_stn+1))
+            GMT.velo(mat2ds(velo_vecs_residual, repeat([" "], n_stn+1)),
+                    pen=(0.6,:black),
+                    Se="0.2/0.39/18",
+                    #arrow="0.3c+p1p+e+gblack+n",
+                    arrow="0.3c+p1p+e+gblack",
+                    region=limits,
+                    )
+            GMT.text([x[end]+0.75 y[end]+0.3], text="Horizontal residual",
+                par=((FONT_ANNOT_PRIMARY="8p,Helvetica,black"),
+                (FONT_LABEL="8p,Helvetica,black"),), justify=:CB)
+            GMT.text([x[end]+0.75 y[end]-0.5], text=string(u_legend)*" mm",
+                par=((FONT_ANNOT_PRIMARY="8p,Helvetica,black"),
+                (FONT_LABEL="8p,Helvetica,black"),), justify=:CB)
+        subplot()
+        ProgressMeter.next!(progress)
+    end
+
+    if isfile("./gmt.history")
+        rm("./gmt.history")
+    end
+
+    return nothing
+end
+
 function plot_select_comps_and_smoothing(f, cs, misfit_comps, options)
 
     sigmas = options["sigma"]
@@ -475,7 +1126,7 @@ function plot_select_comps_and_smoothing(f, cs, misfit_comps, options)
         GMT.basemap(region=(x_min_axa, x_max_axa, 0.9*y_min_axa, y_max_axa*1.1),
                 axes=:WSne,
                 xlabel="Frequency (1/yr)",
-                ylabel="Cumulative PSD",
+                ylabel="Cumulative PSD (normalized)",
                 # xaxis=(annot=0.5),
                 # yaxis=(annot=0.2),
                 title=titlea,
@@ -491,8 +1142,11 @@ function plot_select_comps_and_smoothing(f, cs, misfit_comps, options)
         # end
         n_ind_comps_complex = length(ind_comps_complex)
         for i=1:n_ind_comps_complex
+            #pen_complex = "2p,193/43/43"
+            pen_complex = "2p,193/43/" * 
+                            string((i-1)*255/n_ind_comps_complex)
             GMT.plot!(f, cs[ind_comps_complex[i],:],
-                    pen="2p,193/43/43")
+                    pen=pen_complex)
         end
         n_ind_comps_complex_removed = length(ind_comps_complex_removed)
         for i=1:n_ind_comps_complex_removed
@@ -508,7 +1162,7 @@ function plot_select_comps_and_smoothing(f, cs, misfit_comps, options)
         GMT.basemap(region=(x_min_axb, x_max_axb, 0.9*y_min_axb, y_max_axb*1.1),
                 proj=:logxy,
                 axes=:WSne,
-                xlabel="@~s@~@-m0@-",
+                xlabel="@~s@~@-m0@-(non dimensional)",
                 ylabel="Misfit spatial distribution (non dimensional)",
                 xaxis=(annot=1, scale=:pow),
                 yaxis=(annot=1, scale=:pow),
@@ -516,7 +1170,9 @@ function plot_select_comps_and_smoothing(f, cs, misfit_comps, options)
                 panel=(1,2)
                 )
         for i=1:n_comps_inverted
-            GMT.plot!(sigmas, misfit_comps[:,i],lw=2,lc="0/84/147")
+            color_inverted = "193/43/" * 
+                            string((i-1)*255/n_comps_inverted)
+            GMT.plot!(sigmas, misfit_comps[:,i],lw=2,lc=color_inverted) #"0/84/147")
         end
         for i=1:n_comps_inverted
             ind_min = argmin(misfit_comps[:,i])[1]
@@ -1317,7 +1973,9 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     norm_max_obs_timelats2plot = max_obs_timelats2plot ./ 
                 maximum(max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot])
     ind_notnan_sumR2plot = findall(x -> !isnan(x), sumR2plot)
+    ind_nan_sumR2plot = findall(x -> isnan(x), sumR2plot)
     norm_sumR2plot = sumR2plot ./ maximum(sumR2plot[ind_notnan_sumR2plot])
+    norm_sumR2plot[ind_nan_sumR2plot] .= 0.0
     
     min_ylims_axa = minimum([0,
         minimum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot]),
@@ -1328,9 +1986,14 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
         maximum(norm_sumR2plot[ind_notnan_sumR2plot])]
         )
     
-    # Find ticks for x ans y axes
-    xticks = collect(timeline2plot[1]-1:xticks_dist:timeline2plot[end]+1)
-    xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
+    # Find ticks for x and y axes
+    xticks = collect(round(Int,timeline2plot[1])-1:
+                        xticks_dist:round(Int,timeline2plot[end])+1)
+    if isinteger(xticks_dist)
+        # Ensure ticks are integers
+        xticks = [round(Int, xtick) for xtick in xticks]
+    end
+
     
     lat_min = minimum(minimum(fault["lat"]));
     lat_max = maximum(maximum(fault["lat"]));
@@ -1338,10 +2001,11 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     yticks_axb = [round(Int, ytick) for ytick in yticks_axb] # Ensure ticks are integers
 
     
-    ind_nan_norm_max_obs_timelats2plot = findall(!isnan, 
+    ind_notnan_norm_max_obs_timelats2plot = findall(!isnan, 
                                             norm_max_obs_timelats2plot)
-    ind_nan_norm_sumR2plot = findall(!isnan, norm_sumR2plot)
-    inds = intersect(ind_nan_norm_max_obs_timelats2plot,ind_nan_norm_sumR2plot)
+    ind_notnan_norm_sumR2plot = findall(!isnan, norm_sumR2plot)
+    inds = intersect(ind_notnan_norm_max_obs_timelats2plot,
+                        ind_notnan_norm_sumR2plot)
     x = norm_max_obs_timelats2plot[inds]
     y = norm_sumR2plot[inds]
 
@@ -1428,20 +2092,23 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
         color=:red,
         )
     
+    dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.022
+    dy = (max_ylims_axa - min_ylims_axa)*0.15
     if t_max_crosscorr > 0
-        dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.02
-        dy = (max_ylims_axa - min_ylims_axa)*0.15
         Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-dy;
                 text="corr = "*string(round(r_max, sigdigits=2)), fontsize=16)
         if abs(n_days_max_crosscorr) == 1
-            str_n_days_max_crosscorr = "Δt = "*string(n_days_max_crosscorr)*" day"
+            str_n_days_max_crosscorr = "Δt = "*
+                                    string(n_days_max_crosscorr)*" day"
         else
-            str_n_days_max_crosscorr = "Δt = "*string(n_days_max_crosscorr)*" days"
+            str_n_days_max_crosscorr = "Δt = "*
+                                    string(n_days_max_crosscorr)*" days"
         end
         Makie.text!(axa, timeline2plot[1]+dx, max_ylims_axa-2*dy;
                 text=str_n_days_max_crosscorr, fontsize=16)
     end
-    
+    Makie.text!(axa, timeline2plot[1]+0.2*dx, max_ylims_axa-1.2*dy;
+                text="a)", fontsize=24)
 
     #########################
     ### MAP LATITUDE-TIME ###
@@ -1453,6 +2120,7 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
                yticks=yticks_axb
                )
     xlims!(axb, timeline2plot[1], timeline2plot[end] + Δt)
+    ylims!(axb, lat_min, lat_max)
     axb.ytickformat = yticks_axb -> string.(Int.(yticks_axb)) .* "°"
     hidexdecorations!(axb, grid = false)
 
@@ -1470,10 +2138,12 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
         lat_tremors,
         color=:black,
         markersize=1,
-        alpha=1.0,
+        alpha=0.3,
         )
     translate!(tr_map, 0, 0, 100) # move above surface plot
-    
+    Makie.text!(axb, timeline2plot[1]+0.2*dx, maximum(lats)-0.75;
+                text="b)", fontsize=24)
+
     ################
     ### COLORBAR ###
     ################
@@ -1579,8 +2249,12 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
         maximum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot])])
     
     # Find ticks for x ans y axes
-    xticks = collect(timeline2plot[1]-1:xticks_dist:timeline2plot[end]+1)
-    xticks = [round(Int, xtick) for xtick in xticks] # Ensure ticks are integers
+    xticks = collect(round(Int,timeline2plot[1])-1:
+                        xticks_dist:round(Int,timeline2plot[end])+1)
+    if isinteger(xticks_dist)
+        # Ensure ticks are integers
+        xticks = [round(Int, xtick) for xtick in xticks]
+    end
     
     lat_min = minimum(minimum(fault["lat"]));
     lat_max = maximum(maximum(fault["lat"]));
@@ -1639,6 +2313,11 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
         color=:red,
         )
     
+    dx = (timeline2plot[end] + Δt - timeline2plot[1])*0.022
+    dy = (max_ylims_axa - min_ylims_axa)*0.15
+    Makie.text!(axa, timeline2plot[1]+0.2*dx, max_ylims_axa-1.2*dy;
+                text="a)", fontsize=24)
+    
     #########################
     ### MAP LATITUDE-TIME ###
     #########################
@@ -1649,6 +2328,7 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
                yticks=yticks_axb
                )
     xlims!(axb, timeline2plot[1], timeline2plot[end] + Δt)
+    ylims!(axb, lat_min, lat_max)
     axb.ytickformat = yticks_axb -> string.(Int.(yticks_axb)) .* "°"
     hidexdecorations!(axb, grid = false)
 
@@ -1659,6 +2339,8 @@ function plot_map_lattimets_notremors(obs_var, fault, options)
                   colormap=:bwr,
                   colorrange=colorrange
                   )
+    Makie.text!(axb, timeline2plot[1]+0.2*dx, maximum(lats)-0.75;
+                text="b)", fontsize=24)
     
     ################
     ### COLORBAR ###
@@ -1839,16 +2521,16 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
     yticks_axb = [round(Int, ytick) for ytick in yticks_axb] # Ensure ticks are integers
 
     
-    ind_nan_norm_max_obs_timelats2plot_north = findall(!isnan, 
+    ind_notnan_norm_max_obs_timelats2plot_north = findall(!isnan, 
                                             norm_max_obs_timelats2plot_north)
-    ind_nan_norm_max_obs_timelats2plot_south = findall(!isnan, 
+    ind_notnan_norm_max_obs_timelats2plot_south = findall(!isnan, 
                                             norm_max_obs_timelats2plot_south)
-    ind_nan_norm_sumR2plot_north = findall(!isnan, norm_sumR2plot_north)
-    ind_nan_norm_sumR2plot_south = findall(!isnan, norm_sumR2plot_south)
-    inds_north = intersect(ind_nan_norm_max_obs_timelats2plot_north,
-                            ind_nan_norm_sumR2plot_north)
-    inds_south = intersect(ind_nan_norm_max_obs_timelats2plot_south,
-                            ind_nan_norm_sumR2plot_south)
+    ind_notnan_norm_sumR2plot_north = findall(!isnan, norm_sumR2plot_north)
+    ind_notnan_norm_sumR2plot_south = findall(!isnan, norm_sumR2plot_south)
+    inds_north = intersect(ind_notnan_norm_max_obs_timelats2plot_north,
+                            ind_notnan_norm_sumR2plot_north)
+    inds_south = intersect(ind_notnan_norm_max_obs_timelats2plot_south,
+                            ind_notnan_norm_sumR2plot_south)
     x_north = norm_max_obs_timelats2plot_north[inds_north]
     x_south = norm_max_obs_timelats2plot_south[inds_south]
     y_north = norm_sumR2plot_north[inds_north]

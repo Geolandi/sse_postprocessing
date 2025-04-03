@@ -195,7 +195,12 @@ function read_options_fig_intro(options, dirs)
     options["plot"]["figures"]["intro"]["title"] = "Cascadia"
     options["plot"]["figures"]["intro"]["volcanoes"] = 
                                     options["scen"]["select"]["origin"][2:end,:]
+    options["plot"]["figures"]["intro"]["stn_legend"] = [-128.0 40.0]
+    options["plot"]["figures"]["intro"]["stn_example_legend"] = [-128.0 39.6]
+    options["plot"]["figures"]["intro"]["ll_volcanoes_legend"] = [-128.0 39.2]
     options["plot"]["figures"]["intro"]["stns2plot"] = ["ALBH", "P160"]
+    options["plot"]["figures"]["intro"]["dx_stns2plot"] = [-1.0 -0.8]
+    options["plot"]["figures"]["intro"]["dy_stns2plot"] = [0.15 0.2]
     # Tectonic plate boundaries in json format downloaded from
     # https://github.com/fraxen/tectonicplates/tree/master?tab=readme-ov-file
     # (original files from http://peterbird.name/oldFTP/PB2002/)
@@ -213,7 +218,61 @@ end
 function read_options_fig_ts(options, dirs)
     options["plot"]["figures"]["ts"] = Dict()
     options["plot"]["figures"]["ts"]["figsize"] = (1000, 1000)
+    options["plot"]["figures"]["ts"]["annot_y_e"] = 5
+    options["plot"]["figures"]["ts"]["annot_y_n"] = 5
+    options["plot"]["figures"]["ts"]["annot_y_u"] = 10
+    options["plot"]["figures"]["ts"]["ticks_y_e"] = 1
+    options["plot"]["figures"]["ts"]["ticks_y_n"] = 1
+    options["plot"]["figures"]["ts"]["ticks_y_u"] = 2
+    options["plot"]["figures"]["ts"]["ms"] = 0.02
+    options["plot"]["figures"]["ts"]["ml"] = 0.01
+    options["plot"]["figures"]["ts"]["p"] = 1
+    options["plot"]["figures"]["ts"]["alpha"] = 0.5
     options["plot"]["figures"]["ts"]["dir_output"] = dirs["dir_results"] *
+                                                    "Slowquakes/real-time/"*
+                                                    dirs["dir_case"] *
+                                                    options["solution_date"]
+    return options
+end
+
+# TIME SERIES
+function read_options_fig_2ts(options, dirs)
+    options["plot"]["figures"]["2ts"] = Dict()
+    options["plot"]["figures"]["2ts"]["figsize"] = (1000, 1000)
+    options["plot"]["figures"]["2ts"]["names"] = ["ALBH" "P160"]
+    options["plot"]["figures"]["2ts"]["annot_y_e"] = [5 5]
+    options["plot"]["figures"]["2ts"]["annot_y_n"] = [5 5]
+    options["plot"]["figures"]["2ts"]["annot_y_u"] = [10 10]
+    options["plot"]["figures"]["2ts"]["ticks_y_e"] = [1 1]
+    options["plot"]["figures"]["2ts"]["ticks_y_n"] = [1 1]
+    options["plot"]["figures"]["2ts"]["ticks_y_u"] = [2 2]
+    options["plot"]["figures"]["2ts"]["ms"] = 0.02
+    options["plot"]["figures"]["2ts"]["ml"] = 0.01
+    options["plot"]["figures"]["2ts"]["p"] = 1
+    options["plot"]["figures"]["2ts"]["alpha"] = 0.5
+    options["plot"]["figures"]["2ts"]["dir_output"] = dirs["dir_results"] *
+                                                    "Slowquakes/real-time/"*
+                                                    dirs["dir_case"] *
+                                                    options["solution_date"]
+    return options
+end
+
+# TIME SERIES
+function read_options_fig_ts_fit(options, dirs, comps_selected)
+    options["plot"]["figures"]["ts_fit"] = Dict()
+    options["plot"]["figures"]["ts_fit"]["figsize"] = (1000, 1000)
+    options["plot"]["figures"]["ts_fit"]["annot_y_e"] = 2
+    options["plot"]["figures"]["ts_fit"]["annot_y_n"] = 1
+    options["plot"]["figures"]["ts_fit"]["annot_y_u"] = 5
+    options["plot"]["figures"]["ts_fit"]["ticks_y_e"] = 1
+    options["plot"]["figures"]["ts_fit"]["ticks_y_n"] = 0.5
+    options["plot"]["figures"]["ts_fit"]["ticks_y_u"] = 1
+    options["plot"]["figures"]["ts_fit"]["ms"] = 0.02
+    options["plot"]["figures"]["ts_fit"]["ml"] = 0.01
+    options["plot"]["figures"]["ts_fit"]["p"] = 1
+    options["plot"]["figures"]["ts_fit"]["alpha"] = 0.5
+    options["plot"]["figures"]["ts_fit"]["comps_selected"] = comps_selected
+    options["plot"]["figures"]["ts_fit"]["dir_output"] = dirs["dir_results"] *
                                                     "Slowquakes/real-time/"*
                                                     dirs["dir_case"] *
                                                     options["solution_date"]
@@ -237,6 +296,30 @@ function read_options_fig_comps(options, dirs)
                                                     dirs["dir_case"] *
                                                     options["solution_date"]
     options["plot"]["figures"]["comps"]["output"] = "IC"
+
+    return options
+end
+
+# COMPONENTS FIT
+function read_options_fig_comps_fit(options, dirs, comps_selected)
+    options["plot"]["figures"]["comps_fit"] = Dict()
+    options["plot"]["figures"]["comps_fit"]["figsize"] = (500, 1000)
+    options["plot"]["figures"]["comps_fit"]["ll_legend"] = (-127.7, 40.6)
+    options["plot"]["figures"]["comps_fit"]["ll_legend_model"] = (-127.7, 39.8)
+    options["plot"]["figures"]["comps_fit"]["limits"]    = (-129.0, # lon_min
+                                                            -117.5, # lon_max
+                                                            39.0,   # lat_min
+                                                            51.5)   # lat_max
+    options["plot"]["figures"]["comps_fit"]["proj"]  = "+proj=merc"
+    options["plot"]["figures"]["comps_fit"]["title"] = "Fit IC "
+    options["plot"]["figures"]["comps_fit"]["show_progress"] = true
+    options["plot"]["figures"]["comps_fit"]["comps_selected"] = comps_selected
+    options["plot"]["figures"]["comps_fit"]["dir_output"] = 
+                                                    dirs["dir_results"] *
+                                                    "Slowquakes/real-time/"*
+                                                    dirs["dir_case"] *
+                                                    options["solution_date"]
+    options["plot"]["figures"]["comps_fit"]["output"] = "fit_IC"
 
     return options
 end
