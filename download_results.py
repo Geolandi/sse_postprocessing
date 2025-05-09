@@ -4,7 +4,7 @@ from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup
 
 # === Configuration ===
-date = "2025-03-31"
+date = "2024-08-01"#2025-03-31"
 BASE_URL = "https://near-real-time-sse.esc.cam.ac.uk/cascadia/" + date + "/"
 USERNAME = "access"  # Replace with your username
 PASSWORD = "zauSh~i3"  # Replace with your password

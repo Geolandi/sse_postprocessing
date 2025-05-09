@@ -5,8 +5,10 @@ include("src_options.jl")
 include("src_time.jl")
 include("src_selections.jl")
 
+using DataFrames, CSV
 
-solution_date = "2025-03-31/"#"2024-08-08/"#
+
+solution_date = "2024-08-01/"#"2025-03-31/"#"2024-08-08/"#
 
 mm2m = 1e-3
 km2m = 1e3
@@ -133,7 +135,6 @@ slip_strike = slip_potency["obs_strike"]
 slip_dip = slip_potency["obs_dip"]
 timeline = slip_potency["timeline"]
 
-using DataFrames, CSV
 
 df_slip_strike =  DataFrame( transpose(slip_strike), :auto)
 df_slip_dip =  DataFrame( transpose(slip_dip), :auto)
