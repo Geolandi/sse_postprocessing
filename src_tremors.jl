@@ -9,7 +9,7 @@ include("src_plot.jl")
 include("src_time.jl")
 
 function update_tremors(dirs, t_end)
-
+    println("Updating tremors...")
     files_tremors = readdir(dirs["dir_tremors"]);
     if length(files_tremors[end]) == 21
         date_last_tremor_file = Date(files_tremors[end][8:17], "yyyy-mm-dd");
@@ -37,7 +37,7 @@ function update_tremors(dirs, t_end)
         # date2download = string(date_last_tremor_file + Day(i));
         download_tremors_day(date2download, dirs)
     end
-    
+    println("Done")
     return nothing
 end
 

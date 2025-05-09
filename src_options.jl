@@ -290,6 +290,8 @@ function read_options_fig_comps(options, dirs)
                                                             51.5)   # lat_max
     options["plot"]["figures"]["comps"]["proj"]  = "+proj=merc"
     options["plot"]["figures"]["comps"]["title"] = "IC "
+    options["plot"]["figures"]["comps"]["unit_output"] = 
+                                                options["scen"]["unit_output"]
     options["plot"]["figures"]["comps"]["show_progress"] = true
     options["plot"]["figures"]["comps"]["dir_output"] = dirs["dir_results"] *
                                                     "Slowquakes/real-time/"*
@@ -312,6 +314,8 @@ function read_options_fig_comps_fit(options, dirs, comps_selected)
                                                             51.5)   # lat_max
     options["plot"]["figures"]["comps_fit"]["proj"]  = "+proj=merc"
     options["plot"]["figures"]["comps_fit"]["title"] = "Fit IC "
+    options["plot"]["figures"]["comps_fit"]["unit_output"] = 
+                                                options["scen"]["unit_output"]
     options["plot"]["figures"]["comps_fit"]["show_progress"] = true
     options["plot"]["figures"]["comps_fit"]["comps_selected"] = comps_selected
     options["plot"]["figures"]["comps_fit"]["dir_output"] = 

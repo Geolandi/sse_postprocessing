@@ -470,10 +470,10 @@ function plot_2ts_gmt(X, options)
             GMT.plot(e_vars[names[i]], marker=:dot, ms=ms, color=:black, ml=ml,
                     alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
                     )
-            GMT.scatter(e_vars[names[i]][1], e_vars[names[i]][2],
-                    color="193/43/43",
-                    markersize=ms*3
-                    )
+            # GMT.scatter(e_vars[names[i]][1], e_vars[names[i]][2],
+            #         color="193/43/43",
+            #         markersize=ms*3
+            #         )
 
             GMT.basemap(region=(t0,t1,yn_min[i],yn_max[i]),
                     xaxis=(annot=5,ticks=1),
@@ -486,10 +486,10 @@ function plot_2ts_gmt(X, options)
             GMT.plot(n_vars[names[i]], marker=:dot, ms=ms, color=:black, ml=ml,
                     alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
                     )
-            GMT.scatter(n_vars[names[i]][1], n_vars[names[i]][2],
-                    color="193/43/43",
-                    markersize=ms*3
-                    )
+            # GMT.scatter(n_vars[names[i]][1], n_vars[names[i]][2],
+            #         color="193/43/43",
+            #         markersize=ms*3
+            #         )
 
             GMT.basemap(region=(t0,t1,yu_min[i],yu_max[i]),
                     xaxis=(annot=5,ticks=1),
@@ -503,10 +503,10 @@ function plot_2ts_gmt(X, options)
             GMT.plot(u_vars[names[i]], marker=:dot, ms=ms, color=:black, ml=ml,
                     alpha=alpha, error_bars=(x=:x, y=:y, pen=p)
                     )
-            GMT.scatter(u_vars[names[i]][1], u_vars[names[i]][2],
-                    color="193/43/43",
-                    markersize=ms*3
-                    )
+            # GMT.scatter(u_vars[names[i]][1], u_vars[names[i]][2],
+            #         color="193/43/43",
+            #         markersize=ms*3
+            #         )
         end
     subplot()
     
@@ -597,7 +597,7 @@ function plot_ts_fit_gmt(X, X̂, options)
 
     subplot(grid=(3,2), dims=(size=(30,15), frac=((1,1), (1,1,1)) ),
             title=name, row_axes=(left=false), col_axes=(bott=false),
-            margins=0, autolabel=false,
+            margins=0, autolabel=true,
             savefig=dir_output * name * "_fit.png")
         GMT.basemap(region=(t0,t1,ye_min,ye_max),
                     xaxis=(annot=5,ticks=1),
@@ -734,6 +734,7 @@ function plot_comp_gmt(decomp, options)
     xy_legend = options["ll_legend"]
     proj = options["proj"]
     title = options["title"]
+    unit_output = options["unit_output"]
     show_progress = options["show_progress"]
     dir_output = options["dir_output"]
     output = options["output"]
@@ -752,7 +753,12 @@ function plot_comp_gmt(decomp, options)
     t0 = timeline[1]
     t1 = timeline[end]
     U = decomp["U"]
-    S = decomp["S"]
+    if unit_output == "mm"
+        mm2m = 1e-3
+        S = decomp["S"] ./ mm2m
+    else
+        S = decomp["S"]
+    end
     V = decomp["V"]
     V_var = decomp["var_V"]
     min_V = minimum(V, dims=1)
@@ -875,6 +881,7 @@ function plot_comp_fit_gmt(decomp, model, options)
     xy_legend_model = options["ll_legend_model"]
     proj = options["proj"]
     title = options["title"]
+    unit_output = options["unit_output"]
     show_progress = options["show_progress"]
     comps_selected = options["comps_selected"]
     dir_output = options["dir_output"]
@@ -905,7 +912,12 @@ function plot_comp_fit_gmt(decomp, model, options)
     for i=1:n_comps
         Û_var[:,i] = diag(model["var_U"][i])
     end
-    S = decomp["S"][ind_comps,ind_comps]
+    if unit_output == "mm"
+        mm2m = 1e-3
+        S = decomp["S"][ind_comps,ind_comps] ./ mm2m
+    else
+        S = decomp["S"][ind_comps,ind_comps]
+    end
     V = decomp["V"][:,ind_comps]
     V_var = decomp["var_V"]
     min_V = minimum(V, dims=1)
@@ -1162,7 +1174,7 @@ function plot_select_comps_and_smoothing(f, cs, misfit_comps, options)
         GMT.basemap(region=(x_min_axb, x_max_axb, 0.9*y_min_axb, y_max_axb*1.1),
                 proj=:logxy,
                 axes=:WSne,
-                xlabel="@~s@~@-m0@-(non dimensional)",
+                xlabel="@~s@~@-m0@- (non dimensional)",
                 ylabel="Misfit spatial distribution (non dimensional)",
                 xaxis=(annot=1, scale=:pow),
                 yaxis=(annot=1, scale=:pow),
