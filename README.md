@@ -6,4 +6,6 @@ You will have to modify the lines of these files depending on where you store th
 
 2 - Move the files in whatever directory you want, and change the section `SET DIRECTORIES` in the driver files accordingly.
 
-3 - Run the driver file of interest.
+3 - Change the flags of the figures/videos you want to create from `false` to `true`
+
+4 - Run the driver file of interest.
