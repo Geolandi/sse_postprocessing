@@ -119,6 +119,3 @@ ICA_dot["timeline"] = timeline_dot;
 
 # calculate slip potency rate
 slip_potency_rate = create_model(mp,Cmp,ICA_dot,fault,options,ind_comps)
-
-slip_potency_rate_norm_threshold = 0.2
-idx_sses = ( maximum(slip_potency_rate["obs"], dims=1) ./ maximum(slip_potency_rate["obs"]) ) .> slip_potency_rate_norm_threshold
