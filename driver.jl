@@ -49,6 +49,8 @@ if options["scen"]["unit_output"] == "mm"
     # convert S in m, so that later on the slip potency is in m^3 (SI units)
     ICA["S"] = ICA["S"] .* mm2m
 end
+# trajectory model fitresult
+#fitresult = matread(dirs["dir_results2load"]*"fitresult.mat")["fitresult"]
 
 ##################################################
 ### LOAD FAULT AND CALCULATE GREENS' FUNCTIONS ###
@@ -155,7 +157,7 @@ flag_plot_video_map            = false
 flag_plot_video_map_northsouth = false
 flag_plot_fig_intro            = false
 flag_plot_fig_ts               = false
-flag_plot_fig_2ts              = true
+flag_plot_fig_2ts              = false
 flag_plot_fig_ts_misfit        = false
 flag_plot_fig_ICs              = false
 flag_plot_fig_ICs_fit          = false

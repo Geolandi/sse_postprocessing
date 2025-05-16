@@ -24,8 +24,6 @@ dirs["dir_case"] = "Cascadia/"
 dirs["dir_results2load"] = dirs["dir_results"] * "Slowquakes/real-time/" *
                         dirs["dir_case"] * "matfiles/" * solution_date
 dirs["dir_fault"]   = dirs["dir_data"] * "Faults/" * dirs["dir_case"]
-dirs["dir_tremors"] = dirs["dir_data"]*"Tremors/"*dirs["dir_case"]*"PNSN/"
-dirs["dir_coastlines"] = dirs["dir_data"] * "NaturalEarth/coastlines_jl/"
 
 ######################
 ### LOAD VARIABLES ###

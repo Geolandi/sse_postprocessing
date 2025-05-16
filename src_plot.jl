@@ -735,6 +735,10 @@ function plot_comp_gmt(decomp, options)
     proj = options["proj"]
     title = options["title"]
     unit_output = options["unit_output"]
+    ms = options["ms"]
+    ml = options["ml"]
+    p = options["p"]
+    alpha = options["alpha"]
     show_progress = options["show_progress"]
     dir_output = options["dir_output"]
     output = options["output"]
@@ -810,15 +814,14 @@ function plot_comp_gmt(decomp, options)
                     ylabel="Time function",
                     panel=(1,1)
                     )
-            GMT.plot(time_plot_vars,
-                    error_bars=(x=:x, pen=1),
-                    #xlabel="Time (yr)",
-                    )
+            GMT.plot(time_plot_vars, marker=:dot, ms=ms, color=:black, ml=ml,
+                alpha=alpha, error_bars=(y=:y, pen=p)
+                )
             GMT.scatter(timeline, time_func,
-                    color=:red,
-                    markersize=0.02
-                    #xlabel="Time (yr)",
+                    color="193/43/43",
+                    markersize=ms*3
                     )
+                    
             GMT.basemap(region=limits,
                     proj=:Mercator,
                     axes=:WSne,
@@ -1471,7 +1474,7 @@ function plot_comp(decomp, options)
             marker=:circle,
             color=spat_map[3:3:end],
             markersize=20,
-            alpha=1.0,
+            alpha=0.9,
             colormap=:bwr,
             )
 
@@ -1672,7 +1675,7 @@ function make_figure_map_lat_time(obs_var, fault, options)
         tremors_timeline, tremors["lat"],
         color=:black,
         markersize=1,
-        alpha=1.0,
+        alpha=0.9,
         )
     translate!(tr_map, 0, 0, 200) # move above surface plot
 
@@ -1834,7 +1837,7 @@ function make_figure_map_lat_time_ts(obs_var, fault, options)
         tremors_timeline, tremors["lat"],
         color=:black,
         markersize=1,
-        alpha=1.0,
+        alpha=0.5,
         )
     translate!(tr_map, 0, 0, 200) # move above surface plot
     #xlims!(axb, timeline[1], timeline[end])
@@ -1955,7 +1958,7 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     tremors_timeline_R =tremors["timeline_R"][tremors_R_ind_t0:tremors_R_ind_t1]
     tremors_dates_R = Date.(DateFormats.yeardecimal.(tremors_timeline_R))
     sumR = sum(tremors["R"], dims=1)[1,tremors_R_ind_t0:tremors_R_ind_t1]
-    
+
     ##################################################
     ### CREATE TIMELINE OF TIMES AND DATES TO PLOT ###
     ##################################################
@@ -1988,6 +1991,11 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
     ind_nan_sumR2plot = findall(x -> isnan(x), sumR2plot)
     norm_sumR2plot = sumR2plot ./ maximum(sumR2plot[ind_notnan_sumR2plot])
     norm_sumR2plot[ind_nan_sumR2plot] .= 0.0
+
+    inds_tremors_nan = findall((timeline2plot .- tremors["timeline"][1] .< 0) .|
+                               (timeline2plot .- tremors["timeline"][end] .> 0))
+    norm_sumR2plot[inds_tremors_nan] .= NaN
+
     
     min_ylims_axa = minimum([0,
         minimum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot]),
@@ -2020,7 +2028,7 @@ function plot_map_lattimets(obs_var, tremors, fault, options)
                         ind_notnan_norm_sumR2plot)
     x = norm_max_obs_timelats2plot[inds]
     y = norm_sumR2plot[inds]
-
+    
     ## Explanation of crosscor
     ## (see https://discourse.julialang.org/t/cross-correlation-with-statsbase-crosscor-answer-does-not-make-sense/44374)
     # Julia 1.5
@@ -2736,7 +2744,7 @@ function plot_map_lattimets_northsouth(obs_var, tremors, fault, options)
         lat_tremors,
         color=:black,
         markersize=1,
-        alpha=1.0,
+        alpha=0.9,
         )
     translate!(tr_map, 0, 0, 100) # move above surface plot
     

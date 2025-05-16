@@ -11,6 +11,8 @@ function read_options_select_comps(options)
     # options["inversion"]["select_comps"]["frequency_analysis"]["sigmaf_skip"] =
     #                                                         [0.05 0.05 0.05]
     # options["inversion"]["select_comps"]["frequency_analysis"]["cs_psd1"] = 0.5
+    options["inversion"]["select_comps"]["frequency_analysis"]["f_psd_st"] = 0.1
+    options["inversion"]["select_comps"]["frequency_analysis"]["cs_psd_st"]= 0.9
     
     return options
 end
@@ -292,6 +294,10 @@ function read_options_fig_comps(options, dirs)
     options["plot"]["figures"]["comps"]["title"] = "IC "
     options["plot"]["figures"]["comps"]["unit_output"] = 
                                                 options["scen"]["unit_output"]
+    options["plot"]["figures"]["comps"]["ms"] = 0.02
+    options["plot"]["figures"]["comps"]["ml"] = 0.01
+    options["plot"]["figures"]["comps"]["p"] = 1
+    options["plot"]["figures"]["comps"]["alpha"] = 0.5
     options["plot"]["figures"]["comps"]["show_progress"] = true
     options["plot"]["figures"]["comps"]["dir_output"] = dirs["dir_results"] *
                                                     "Slowquakes/real-time/"*

@@ -64,6 +64,9 @@ function select_complex_psds(f, psds, options)
     cs_psd1     = options["cs_psd1"]
     cs_psd2     = options["cs_psd2"]
 
+    f_psd_st = options["f_psd_st"];
+    cs_psd_st = options["cs_psd_st"];
+
     # number of components
     n_comp = size(psds)[2]
     # find boundaries of frequency regions to avoid in the calculation of the
@@ -92,8 +95,17 @@ function select_complex_psds(f, psds, options)
     f_thr = minimum(abs.(f[ind_f2keep] .- f_threshold))
     ind_f_thr = argmin(abs.(f[ind_f2keep] .- f_threshold))
 
-    ind_comps_cpsd = findall(cpsd[:,ind_f_thr] .>= cs_psd1 .&&
+    ind_comps_cpsd_lt = findall(cpsd[:,ind_f_thr] .>= cs_psd1 .&&
                            cpsd[:,ind_f_thr] .<= cs_psd2)
+
+    f_thr_st = minimum(abs.(f[ind_f2keep] .- f_psd_st))
+    ind_f_thr_st = argmin(abs.(f[ind_f2keep] .- f_psd_st))
+
+    ind_comps_cpsd_st = findall( ((cpsd[:,ind_f_thr_st] .- cpsd[:,1]) ./
+                    (f[ind_f_thr_st] .- f[1])) .< cs_psd_st );
+    
+    ind_comps_cpsd = intersect(ind_comps_cpsd_st, ind_comps_cpsd_lt);
+
 
     ind_comps2rm   = []
     ind_comps2keep = []

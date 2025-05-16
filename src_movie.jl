@@ -103,7 +103,13 @@ function make_video_map(obs_var, tremors, fault, options)
     norm_max_obs_timelats2plot = max_obs_timelats2plot ./ 
                 maximum(max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot])
     ind_notnan_sumR2plot = findall(x -> !isnan(x), sumR2plot)
+    ind_nan_sumR2plot = findall(x -> isnan(x), sumR2plot)
     norm_sumR2plot = sumR2plot ./ maximum(sumR2plot[ind_notnan_sumR2plot])
+    norm_sumR2plot[ind_nan_sumR2plot] .= 0.0
+
+    inds_tremors_nan = findall((timeline2plot .- tremors["timeline"][1] .< 0) .|
+                               (timeline2plot .- tremors["timeline"][end] .> 0))
+    norm_sumR2plot[inds_tremors_nan] .= NaN
     
     min_ylims_axb = minimum([0,
         minimum(norm_max_obs_timelats2plot[ind_notnan_max_obs_timelats2plot]),
@@ -472,13 +478,22 @@ function make_video_map_northsouth(obs_var, tremors, fault, options)
             max_obs_timelats2plot_south[ind_notnan_max_obs_timelats2plot_south])
     
     ind_notnan_sumR2plot_north = findall(x -> !isnan(x), sumR2plot_north)
+    ind_nan_sumR2plot_north = findall(x -> isnan(x), sumR2plot_north)
     norm_sumR2plot_north = sumR2plot_north ./
                     maximum(sumR2plot_north[ind_notnan_sumR2plot_north])
+    norm_sumR2plot_north[ind_nan_sumR2plot_north] .= 0.0
 
     ind_notnan_sumR2plot_south = findall(x -> !isnan(x), sumR2plot_south)
+    ind_nan_sumR2plot_south = findall(x -> isnan(x), sumR2plot_south)
     norm_sumR2plot_south = sumR2plot_south ./
                     maximum(sumR2plot_south[ind_notnan_sumR2plot_south])
-    
+    norm_sumR2plot_south[ind_nan_sumR2plot_south] .= 0.0
+
+    inds_tremors_nan = findall((timeline2plot .- tremors["timeline"][1] .< 0) .|
+                               (timeline2plot .- tremors["timeline"][end] .> 0))
+    norm_sumR2plot_north[inds_tremors_nan] .= NaN
+    norm_sumR2plot_south[inds_tremors_nan] .= NaN
+
     min_ylims_axb = minimum([0,
         minimum(norm_max_obs_timelats2plot_north[
             ind_notnan_max_obs_timelats2plot_north]),
